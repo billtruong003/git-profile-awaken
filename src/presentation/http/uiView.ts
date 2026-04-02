@@ -1,0 +1,300 @@
+export const getSystemUiHtml = (): string => `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Git Profile Awaken | System Interface</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700;800&display=swap');
+
+        body {
+            background: #050a15;
+            color: #e0e6ed;
+            font-family: 'Rajdhani', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 40px;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            color: #00f0ff;
+            text-shadow: 0 0 15px rgba(0, 240, 255, 0.6);
+            letter-spacing: 3px;
+            margin-bottom: 40px;
+            text-transform: uppercase;
+        }
+
+        .panel {
+            background: rgba(10, 18, 36, 0.8);
+            backdrop-filter: blur(12px);
+            padding: 30px;
+            border-radius: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 50px;
+            border: 1px solid #112240;
+            box-shadow: 0 10px 30px rgba(0, 122, 204, 0.15);
+            align-items: flex-end;
+            width: 100%;
+            max-width: 1100px;
+        }
+
+        label {
+            font-weight: 700;
+            color: #4b618f;
+            text-transform: uppercase;
+            font-size: 13px;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        input, select {
+            padding: 12px 15px;
+            border-radius: 6px;
+            background: #050a15;
+            color: #00f0ff;
+            border: 1px solid #112240;
+            outline: none;
+            width: 190px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            border-color: #00f0ff;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 15px;
+        }
+
+        button {
+            padding: 14px 25px;
+            background: transparent;
+            color: #00f0ff;
+            border: 2px solid #00f0ff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            height: 47px;
+        }
+
+        button:hover {
+            background: #00f0ff;
+            color: #000;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        button.btn-warning {
+            color: #ff4500;
+            border-color: #ff4500;
+        }
+
+        button.btn-warning:hover {
+            background: #ff4500;
+            color: #fff;
+            box-shadow: 0 0 20px rgba(255, 69, 0, 0.5);
+        }
+
+        .grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 40px;
+            justify-content: center;
+            max-width: 1400px;
+            width: 100%;
+            margin-bottom: 40px;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            justify-items: center;
+        }
+
+        .widget-box {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+            background: rgba(10, 18, 36, 0.4);
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid #112240;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .widget-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+            border-color: #4b618f;
+        }
+
+        img {
+            border-radius: 10px;
+            max-width: 100%;
+        }
+
+        input.copy {
+            padding: 12px;
+            width: 100%;
+            box-sizing: border-box;
+            background: #050a15;
+            color: #4b618f;
+            border: 1px solid #112240;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            cursor: copy;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        input.copy:hover {
+            color: #00f0ff;
+            border-color: #00f0ff;
+            background: rgba(0, 240, 255, 0.05);
+        }
+
+        .section-title {
+            width: 100%;
+            text-align: center;
+            font-family: 'Orbitron', sans-serif;
+            color: #4b618f;
+            letter-spacing: 2px;
+            margin: 20px 0;
+            border-bottom: 1px solid #112240;
+            padding-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>[ SYSTEM AWAKEN ]</h1>
+    <div class="panel">
+        <div>
+            <label>Player ID (GitHub)</label>
+            <input type="text" id="user" value="BillTheDev">
+        </div>
+        <div>
+            <label>Dimension Theme</label>
+            <select id="theme"></select>
+        </div>
+        <div>
+            <label>Authority</label>
+            <select id="mode">
+                <option value="mortal">Mortal Rank</option>
+                <option value="admin">System Monarch</option>
+            </select>
+        </div>
+        <div class="btn-group">
+            <button onclick="loadAll(false)">Generate Markdown</button>
+            <button class="btn-warning" onclick="loadAll(true)">Force Refresh</button>
+        </div>
+    </div>
+
+    <div class="section-title">- CORE INTERFACE -</div>
+    <div class="grid" id="main-output"></div>
+
+    <div class="section-title">- CONTRIBUTION ANALYSIS -</div>
+    <div class="grid" id="contribution-output"></div>
+
+    <div class="section-title">- INDIVIDUAL RUNES -</div>
+    <div class="stat-grid" id="stat-output"></div>
+
+    <script>
+        const BASE = window.location.origin;
+
+        const initThemes = async () => {
+            const themeSelect = document.getElementById('theme');
+            try {
+                const res = await fetch(\`\${BASE}/themes\`);
+                const data = await res.json();
+                data.themes.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t;
+                    opt.innerText = t.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                    themeSelect.appendChild(opt);
+                });
+            } catch {['solo_leveling', 'cyberpunk', 'dracula'].forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t;
+                    opt.innerText = t.toUpperCase();
+                    themeSelect.appendChild(opt);
+                });
+            }
+        };
+
+        const buildBox = (url, name) => {
+            const div = document.createElement('div');
+            div.className = 'widget-box';
+            
+            const img = document.createElement('img');
+            img.src = url;
+            
+            const input = document.createElement('input');
+            input.className = 'copy';
+            input.readOnly = true;
+            input.value = \`![\${name}](\${url.split('&t=')[0]})\`;
+            
+            input.onclick = (e) => {
+                e.target.select();
+                navigator.clipboard.writeText(e.target.value);
+                const original = e.target.value;
+                e.target.value = "COPIED TO CLIPBOARD!";
+                setTimeout(() => e.target.value = original, 1500);
+            };
+            
+            div.append(img, input);
+            return div;
+        };
+
+        const loadAll = (forceBypass = false) => {
+            const u = document.getElementById('user').value;
+            const t = document.getElementById('theme').value;
+            const m = document.getElementById('mode').value;
+
+            if(!u) return alert("System Error: Player ID is required.");
+
+            const bypassParam = forceBypass ? \`&refresh=true&t=\${Date.now()}\` : '';
+            const b = \`\${BASE}/api?username=\${u}&theme=\${t}\${m === 'mortal' ? '&mode=mortal' : ''}\`;
+
+            const mainOut = document.getElementById('main-output');
+            const contribOut = document.getElementById('contribution-output');
+            const statOut = document.getElementById('stat-output');
+            
+            mainOut.innerHTML = '';
+            contribOut.innerHTML = '';
+            statOut.innerHTML = '';
+
+            mainOut.appendChild(buildBox(\`\${b}&widget=status\${bypassParam}\`, 'Status Window'));
+            mainOut.appendChild(buildBox(\`\${b}&widget=quest\${bypassParam}\`, 'Active Quest'));
+            mainOut.appendChild(buildBox(\`\${b}&widget=skill\${bypassParam}\`, 'Passive Skills'));
+
+            contribOut.appendChild(buildBox(\`\${b}&widget=contribution\${bypassParam}\`, 'Contribution Analysis'));['STR', 'AGI', 'INT', 'VIT', 'LUK', 'CHA'].forEach(stat => {
+                statOut.appendChild(buildBox(\`\${b}&widget=stat&target=\${stat}\${bypassParam}\`, \`\${stat} Rune\`));
+            });
+        };
+
+        window.onload = async () => {
+            await initThemes();
+            loadAll(false);
+        };
+    </script>
+</body>
+</html>`;

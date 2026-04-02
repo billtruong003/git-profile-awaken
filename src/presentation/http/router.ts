@@ -5,6 +5,7 @@ import { processProfileData } from '../../application/dataProcessor.js';
 import { resolveTheme, AVAILABLE_THEME_NAMES } from '../theme/themes.js';
 import { buildStatusWindow, buildQuestWidget, buildSkillWidget, buildSingleStatWidget, buildContributionWidget } from '../svg/widgetBuilders.js';
 import { buildErrorSvg } from '../svg/errorSvg.js';
+import { getSystemUiHtml } from './uiView.js';
 
 const VALID_WIDGETS = ['status', 'quest', 'skill', 'stat', 'contribution'] as const;
 type WidgetType = (typeof VALID_WIDGETS)[number];
@@ -28,10 +29,16 @@ const sendJson = (res: ServerResponse, statusCode: number, data: unknown): void 
   res.end(JSON.stringify(data));
 };
 
+const handleUI = (_req: IncomingMessage, res: ServerResponse): void => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.writeHead(200);
+  res.end(getSystemUiHtml());
+};
+
 const handleHealthCheck = (_req: IncomingMessage, res: ServerResponse): void => {
   sendJson(res, 200, {
     status: 'operational',
-    system: 'Dev-Nexus RPG Gateway',
+    system: 'Git Profile Awaken',
     timestamp: new Date().toISOString(),
     availableThemes: AVAILABLE_THEME_NAMES.length,
   });
@@ -110,7 +117,7 @@ const handleApiRequest = async (req: IncomingMessage, res: ServerResponse): Prom
 const handleNotFound = (_req: IncomingMessage, res: ServerResponse): void => {
   sendJson(res, 404, {
     error: 'Route not found',
-    availableRoutes: ['GET /api', 'GET /health', 'GET /themes'],
+    availableRoutes: ['GET /', 'GET /api', 'GET /health', 'GET /themes'],
   });
 };
 
@@ -121,9 +128,10 @@ export const handleRequest = async (req: IncomingMessage, res: ServerResponse): 
     const url = new URL(req.url, 'http://localhost');
     const pathname = url.pathname;
 
+    if (pathname === '/') return handleUI(req, res);
     if (pathname === '/health' || pathname === '/ping') return handleHealthCheck(req, res);
     if (pathname === '/themes') return handleThemeList(req, res);
-    if (pathname === '/api' || pathname === '/') return handleApiRequest(req, res);
+    if (pathname === '/api') return handleApiRequest(req, res);
 
     return handleNotFound(req, res);
   } catch {
