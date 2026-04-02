@@ -12,7 +12,7 @@ export const processProfileData = (data: CombinedGithubData, mode: string | null
   const commitCount = data.allTimeCommits;
   const prCount = user.pullRequests.totalCount;
   const issueCount = user.issues.totalCount;
-  const contributedRepoCount = user.repositoriesContributedTo.totalCount;
+  const totalRepos = user.repositories.totalCount + user.repositoriesContributedTo.totalCount;
   const totalStars = user.repositories.nodes.reduce((acc, node) => acc + node.stargazerCount, 0);
   const followerCount = user.followers.totalCount;
 
@@ -25,12 +25,12 @@ export const processProfileData = (data: CombinedGithubData, mode: string | null
     buildStat('STR', 'Commits', commitCount, RANK_THRESHOLDS.STR),
     buildStat('AGI', 'PRs', prCount, RANK_THRESHOLDS.AGI),
     buildStat('INT', 'Issues', issueCount, RANK_THRESHOLDS.INT),
-    buildStat('VIT', 'Repos', contributedRepoCount, RANK_THRESHOLDS.VIT),
+    buildStat('VIT', 'Repos', totalRepos, RANK_THRESHOLDS.VIT),
     buildStat('LUK', 'Stars', totalStars, RANK_THRESHOLDS.LUK),
     buildStat('CHA', 'Followers', followerCount, RANK_THRESHOLDS.CHA),
   ];
 
-  const levelData = calculateOverallLevel(commitCount, prCount, issueCount, contributedRepoCount, totalStars, followerCount);
+  const levelData = calculateOverallLevel(commitCount, prCount, issueCount, totalRepos, totalStars, followerCount);
   const quest = generateQuest(user.repositories.nodes);
   const calendar = user.contributionsCollection.contributionCalendar;
   const mana = calculateMana(calendar.weeks);

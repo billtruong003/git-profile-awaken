@@ -9,6 +9,7 @@ const buildUserProfileQuery = (username: string) => ({
         pullRequests(first: 1) { totalCount }
         issues(first: 1) { totalCount }
         repositories(first: 100, ownerAffiliations: OWNER, isFork: false, orderBy: {field: PUSHED_AT, direction: DESC}) {
+          totalCount
           nodes {
             name
             stargazerCount
@@ -18,7 +19,7 @@ const buildUserProfileQuery = (username: string) => ({
             languages(first: 10, orderBy: {field: SIZE, direction: DESC}) { edges { size node { name color } } }
           }
         }
-        repositoriesContributedTo(contributionTypes: [COMMIT, ISSUE, PULL_REQUEST, REPOSITORY]) { totalCount }
+        repositoriesContributedTo(contributionTypes:[COMMIT, ISSUE, PULL_REQUEST, REPOSITORY]) { totalCount }
         contributionsCollection { contributionCalendar { totalContributions weeks { contributionDays { contributionCount date } } } }
       }
     }

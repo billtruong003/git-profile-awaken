@@ -68,6 +68,7 @@ export interface RawGithubData {
     pullRequests: { totalCount: number };
     issues: { totalCount: number };
     repositories: {
+      totalCount: number;
       nodes: {
         name: string;
         stargazerCount: number;
