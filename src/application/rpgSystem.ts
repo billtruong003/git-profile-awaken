@@ -120,13 +120,14 @@ export const calculateMana = (weeks: any[]): number => {
 
 export const analyzeContributions = (
   weeks: any[],
-  totalContributions: number,
+  allTimeTotal: number,
+  calendarTotal: number,
   theme: ThemeConfig,
 ): ContributionAnalysis => {
   const allDays = weeks.flatMap((w: any) => w.contributionDays);
 
   const totalDaysTracked = allDays.length || 1;
-  const dailyAverage = Number((totalContributions / totalDaysTracked).toFixed(1));
+  const dailyAverage = Number((calendarTotal / totalDaysTracked).toFixed(1));
 
   let currentStreak = 0;
   for (let i = allDays.length - 1; i >= 0; i--) {
@@ -155,10 +156,10 @@ export const analyzeContributions = (
 
   const weeklyBreakdown = weeklyTotals.slice(-WEEKLY_CHART_SIZE);
 
-  const { grade, progress, color } = calculateGrade(totalContributions, CONTRIBUTION_THRESHOLDS, theme);
+  const { grade, progress, color } = calculateGrade(allTimeTotal, CONTRIBUTION_THRESHOLDS, theme);
 
   return {
-    totalContributions,
+    totalContributions: allTimeTotal,
     dailyAverage,
     currentStreak,
     longestStreak,

@@ -34,7 +34,7 @@ export const processProfileData = (data: CombinedGithubData, mode: string | null
   const quest = generateQuest(user.repositories.nodes);
   const calendar = user.contributionsCollection.contributionCalendar;
   const mana = calculateMana(calendar.weeks);
-  const contributions = analyzeContributions(calendar.weeks, calendar.totalContributions, theme);
+  const contributions = analyzeContributions(calendar.weeks, commitCount, calendar.totalContributions, theme);
 
   const langMap = new Map<string, { size: number; color: string }>();
   let totalLanguageSize = 0;
