@@ -1,8 +1,9 @@
 import type { RawGithubData, CombinedGithubData } from '../domain/types.js';
 
 const GRAPHQL_TIMEOUT_MS = 7_000;
-const REST_SEARCH_TIMEOUT_MS = 3_000;
-const CACHE_LIFETIME_MS = 5 * 60 * 1_000;
+const REST_SEARCH_TIMEOUT_MS = 5_000;
+const PROFILE_CACHE_TTL_MS = 5 * 60 * 1_000;
+const COMMIT_COUNT_CACHE_TTL_MS = 60 * 60 * 1_000;
 const REFRESH_THROTTLE_MS = 5_000;
 const MAX_CACHE_ENTRIES = 500;
 const RETRY_DELAY_MS = 800;
@@ -95,57 +96,70 @@ const fetchLifetimeCommitCount = async (username: string, token: string): Promis
   }
 };
 
-interface CacheEntry {
-  data: CombinedGithubData;
+interface TimedEntry<T> {
+  data: T;
   createdAt: number;
 }
 
-const dataCache = new Map<string, CacheEntry>();
+const profileCache = new Map<string, TimedEntry<CombinedGithubData>>();
+const commitCountCache = new Map<string, TimedEntry<number>>();
 const pendingFetches = new Map<string, Promise<CombinedGithubData>>();
 
-const evictStaleEntries = (): void => {
-  if (dataCache.size <= MAX_CACHE_ENTRIES) return;
+const evictMap = <T>(map: Map<string, TimedEntry<T>>, ttl: number): void => {
+  if (map.size <= MAX_CACHE_ENTRIES) return;
 
   const now = Date.now();
   const staleKeys: string[] = [];
 
-  for (const [key, entry] of dataCache) {
-    if (now - entry.createdAt > CACHE_LIFETIME_MS) {
+  for (const [key, entry] of map) {
+    if (now - entry.createdAt > ttl) {
       staleKeys.push(key);
     }
   }
 
   for (const key of staleKeys) {
-    dataCache.delete(key);
+    map.delete(key);
   }
 
-  if (dataCache.size > MAX_CACHE_ENTRIES) {
-    const oldest = Array.from(dataCache.entries())
-      .sort((a, b) => a[1].createdAt - b[1].createdAt)
-      .slice(0, dataCache.size - MAX_CACHE_ENTRIES);
-
-    for (const [key] of oldest) {
-      dataCache.delete(key);
+  if (map.size > MAX_CACHE_ENTRIES) {
+    const sortedEntries = Array.from(map.entries()).sort((a, b) => a[1].createdAt - b[1].createdAt);
+    const removeCount = map.size - MAX_CACHE_ENTRIES;
+    for (let i = 0; i < removeCount; i++) {
+      map.delete(sortedEntries[i]![0]);
     }
   }
 };
 
-const executeFetch = async (username: string, token: string): Promise<CombinedGithubData> => {
-  const [graphqlResult, restResult] = await Promise.allSettled([
-    fetchGraphqlProfile(username, token),
-    fetchLifetimeCommitCount(username, token),
-  ]);
+const resolveCommitCount = async (
+  username: string,
+  token: string,
+  graphqlFallback: number,
+): Promise<number> => {
+  const cached = commitCountCache.get(username);
 
-  if (graphqlResult.status === 'rejected') {
-    throw graphqlResult.reason instanceof Error
-      ? graphqlResult.reason
-      : new Error(String(graphqlResult.reason));
+  if (cached && Date.now() - cached.createdAt < COMMIT_COUNT_CACHE_TTL_MS) {
+    return Math.max(cached.data, graphqlFallback);
   }
 
-  const graphql = graphqlResult.value;
-  const restCommitCount = restResult.status === 'fulfilled' ? restResult.value : 0;
-  const graphqlFallbackCommits = graphql.user.contributionsCollection.contributionCalendar.totalContributions;
-  const allTimeCommits = restCommitCount > 0 ? restCommitCount : graphqlFallbackCommits;
+  const restCount = await fetchLifetimeCommitCount(username, token);
+
+  if (restCount > 0) {
+    evictMap(commitCountCache, COMMIT_COUNT_CACHE_TTL_MS);
+    commitCountCache.set(username, { data: restCount, createdAt: Date.now() });
+    return restCount;
+  }
+
+  if (cached && cached.data > 0) {
+    return cached.data;
+  }
+
+  return graphqlFallback;
+};
+
+const executeFetch = async (username: string, token: string): Promise<CombinedGithubData> => {
+  const graphql = await fetchGraphqlProfile(username, token);
+  const graphqlFallback = graphql.user.contributionsCollection.contributionCalendar.totalContributions;
+  const allTimeCommits = await resolveCommitCount(username, token, graphqlFallback);
 
   return { graphql, allTimeCommits };
 };
@@ -156,11 +170,11 @@ export const fetchGithubData = (
   forceRefresh: boolean = false,
 ): Promise<CombinedGithubData> => {
   const now = Date.now();
-  const cached = dataCache.get(username);
+  const cached = profileCache.get(username);
 
   if (cached) {
     const age = now - cached.createdAt;
-    if (!forceRefresh && age < CACHE_LIFETIME_MS) return Promise.resolve(cached.data);
+    if (!forceRefresh && age < PROFILE_CACHE_TTL_MS) return Promise.resolve(cached.data);
     if (forceRefresh && age < REFRESH_THROTTLE_MS) return Promise.resolve(cached.data);
   }
 
@@ -169,8 +183,8 @@ export const fetchGithubData = (
 
   const promise = executeFetch(username, token)
     .then((result) => {
-      evictStaleEntries();
-      dataCache.set(username, { data: result, createdAt: Date.now() });
+      evictMap(profileCache, PROFILE_CACHE_TTL_MS);
+      profileCache.set(username, { data: result, createdAt: Date.now() });
       pendingFetches.delete(username);
       return result;
     })
