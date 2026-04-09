@@ -12,8 +12,10 @@ const VALID_WIDGETS = ['status', 'quest', 'skill', 'stat', 'contribution'] as co
 type WidgetType = (typeof VALID_WIDGETS)[number];
 type WidgetBuilder = (profile: CharacterProfile, theme: ThemeConfig, target: string | null) => string;
 
-const SVG_CACHE_SECONDS = 300;
-const STALE_REVALIDATE_SECONDS = 60;
+const SVG_FRESH_SECONDS = 1800;
+const SVG_STALE_REVALIDATE_SECONDS = 86400;
+const ERROR_FRESH_SECONDS = 60;
+const ERROR_STALE_REVALIDATE_SECONDS = 300;
 
 const WIDGET_BUILDERS: Record<WidgetType, WidgetBuilder> = {
   status: (profile, theme) => buildStatusWindow(profile, theme),
@@ -23,22 +25,31 @@ const WIDGET_BUILDERS: Record<WidgetType, WidgetBuilder> = {
   contribution: (profile, theme) => buildContributionWidget(profile, theme),
 };
 
-const buildCacheHeader = (seconds: number): string =>
-  seconds > 0
-    ? `public, max-age=${seconds}, s-maxage=${seconds}, stale-while-revalidate=${STALE_REVALIDATE_SECONDS}`
-    : 'no-cache, no-store';
+const setCacheHeaders = (res: ServerResponse, freshSeconds: number, staleSeconds: number): void => {
+  res.setHeader('Cache-Control', `public, max-age=${Math.min(freshSeconds, 300)}`);
+  res.setHeader(
+    'Vercel-CDN-Cache-Control',
+    `public, s-maxage=${freshSeconds}, stale-while-revalidate=${staleSeconds}`,
+  );
+};
 
-const sendSvg = (res: ServerResponse, svg: string, cacheSeconds: number): void => {
+const sendSvg = (res: ServerResponse, svg: string, isError: boolean): void => {
   res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
-  res.setHeader('Cache-Control', buildCacheHeader(cacheSeconds));
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Vary', 'Accept-Encoding');
+
+  if (isError) {
+    setCacheHeaders(res, ERROR_FRESH_SECONDS, ERROR_STALE_REVALIDATE_SECONDS);
+  } else {
+    setCacheHeaders(res, SVG_FRESH_SECONDS, SVG_STALE_REVALIDATE_SECONDS);
+  }
+
   res.writeHead(200);
   res.end(svg);
 };
 
 const sendErrorSvg = (res: ServerResponse, errorCode: number, title: string, detail: string): void => {
-  sendSvg(res, buildErrorSvg(errorCode, title, detail), 0);
+  sendSvg(res, buildErrorSvg(errorCode, title, detail), true);
 };
 
 const sendJson = (res: ServerResponse, statusCode: number, data: unknown): void => {
@@ -70,7 +81,6 @@ const handleThemeList = (_req: IncomingMessage, res: ServerResponse): void => {
 const classifyError = (message: string): { code: number; title: string } => {
   if (message.includes('Could not resolve to a User')) return { code: 404, title: 'Hunter Not Found' };
   if (message.includes('rate limit')) return { code: 429, title: 'Mana Depleted' };
-  if (message.includes('responding slowly') || message.includes('timeout')) return { code: 504, title: 'Gateway Timeout' };
   if (message.includes('Invalid GitHub token')) return { code: 401, title: 'Authentication Failed' };
   return { code: 500, title: 'System Anomaly Detected' };
 };
@@ -81,7 +91,6 @@ const handleApiRequest = async (res: ServerResponse, url: URL): Promise<void> =>
   const widgetParam = url.searchParams.get('widget') || 'status';
   const target = url.searchParams.get('target');
   const mode = url.searchParams.get('mode');
-  const forceRefresh = url.searchParams.get('refresh') === 'true';
   const token = process.env.GITHUB_TOKEN;
 
   if (!token) {
@@ -105,11 +114,11 @@ const handleApiRequest = async (res: ServerResponse, url: URL): Promise<void> =>
 
   try {
     const theme = resolveTheme(themeName);
-    const rawData = await fetchGithubData(username, token, forceRefresh);
+    const rawData = await fetchGithubData(username, token);
     const profile = processProfileData(rawData, mode, theme);
     const svgOutput = WIDGET_BUILDERS[widget](profile, theme, target);
 
-    sendSvg(res, svgOutput, forceRefresh ? 0 : SVG_CACHE_SECONDS);
+    sendSvg(res, svgOutput, false);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown system failure';
     const { code, title } = classifyError(message);
