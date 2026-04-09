@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import type { CharacterProfile, ThemeConfig } from '../../domain/types.js';
 import { fetchGithubData } from '../../infrastructure/githubClient.js';
 import { isValidGithubUsername } from '../../infrastructure/sanitizer.js';
 import { processProfileData } from '../../application/dataProcessor.js';
@@ -9,13 +10,22 @@ import { getSystemUiHtml } from './uiView.js';
 
 const VALID_WIDGETS = ['status', 'quest', 'skill', 'stat', 'contribution'] as const;
 type WidgetType = (typeof VALID_WIDGETS)[number];
+type WidgetBuilder = (profile: CharacterProfile, theme: ThemeConfig, target: string | null) => string;
 
 const SVG_CACHE_SECONDS = 300;
-const STALE_WHILE_REVALIDATE_SECONDS = 60;
+const STALE_REVALIDATE_SECONDS = 60;
+
+const WIDGET_BUILDERS: Record<WidgetType, WidgetBuilder> = {
+  status: (profile, theme) => buildStatusWindow(profile, theme),
+  quest: (profile, theme) => buildQuestWidget(profile, theme),
+  skill: (profile, theme) => buildSkillWidget(profile, theme),
+  stat: (profile, theme, target) => buildSingleStatWidget(profile, theme, target),
+  contribution: (profile, theme) => buildContributionWidget(profile, theme),
+};
 
 const buildCacheHeader = (seconds: number): string =>
   seconds > 0
-    ? `public, max-age=${seconds}, s-maxage=${seconds}, stale-while-revalidate=${STALE_WHILE_REVALIDATE_SECONDS}`
+    ? `public, max-age=${seconds}, s-maxage=${seconds}, stale-while-revalidate=${STALE_REVALIDATE_SECONDS}`
     : 'no-cache, no-store';
 
 const sendSvg = (res: ServerResponse, svg: string, cacheSeconds: number): void => {
@@ -57,15 +67,15 @@ const handleThemeList = (_req: IncomingMessage, res: ServerResponse): void => {
   sendJson(res, 200, { themes: AVAILABLE_THEME_NAMES });
 };
 
-const WIDGET_BUILDERS: Record<WidgetType, (profile: any, theme: any, target?: string | null) => string> = {
-  status: (profile, theme) => buildStatusWindow(profile, theme),
-  quest: (profile, theme) => buildQuestWidget(profile, theme),
-  skill: (profile, theme) => buildSkillWidget(profile, theme),
-  stat: (profile, theme, target) => buildSingleStatWidget(profile, theme, target ?? null),
-  contribution: (profile, theme) => buildContributionWidget(profile, theme),
+const classifyError = (message: string): { code: number; title: string } => {
+  if (message.includes('Could not resolve to a User')) return { code: 404, title: 'Hunter Not Found' };
+  if (message.includes('rate limit')) return { code: 429, title: 'Mana Depleted' };
+  if (message.includes('responding slowly') || message.includes('timeout')) return { code: 504, title: 'Gateway Timeout' };
+  if (message.includes('Invalid GitHub token')) return { code: 401, title: 'Authentication Failed' };
+  return { code: 500, title: 'System Anomaly Detected' };
 };
 
-const handleApiRequest = async (_req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> => {
+const handleApiRequest = async (res: ServerResponse, url: URL): Promise<void> => {
   const username = url.searchParams.get('username');
   const themeName = url.searchParams.get('theme');
   const widgetParam = url.searchParams.get('widget') || 'status';
@@ -97,29 +107,23 @@ const handleApiRequest = async (_req: IncomingMessage, res: ServerResponse, url:
     const theme = resolveTheme(themeName);
     const rawData = await fetchGithubData(username, token, forceRefresh);
     const profile = processProfileData(rawData, mode, theme);
-
-    const builder = WIDGET_BUILDERS[widget];
-    const svgOutput = builder(profile, theme, target);
+    const svgOutput = WIDGET_BUILDERS[widget](profile, theme, target);
 
     sendSvg(res, svgOutput, forceRefresh ? 0 : SVG_CACHE_SECONDS);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown system failure';
+    const { code, title } = classifyError(message);
 
-    if (message.includes('Could not resolve to a User')) {
-      sendErrorSvg(res, 404, 'Hunter Not Found', `No hunter registered under "${username}" in the System.`);
+    if (code === 404) {
+      sendErrorSvg(res, 404, title, `No hunter registered under "${username}" in the System.`);
       return;
     }
 
-    if (message.includes('rate limit')) {
-      sendErrorSvg(res, 429, 'Mana Depleted', message.substring(0, 120));
-      return;
-    }
-
-    sendErrorSvg(res, 500, 'System Anomaly Detected', message.substring(0, 120));
+    sendErrorSvg(res, code, title, message.substring(0, 120));
   }
 };
 
-const handleNotFound = (_req: IncomingMessage, res: ServerResponse): void => {
+const handleNotFound = (res: ServerResponse): void => {
   sendJson(res, 404, {
     error: 'Route not found',
     availableRoutes: ['GET /', 'GET /api', 'GET /health', 'GET /themes'],
@@ -136,9 +140,9 @@ export const handleRequest = async (req: IncomingMessage, res: ServerResponse): 
     if (pathname === '/') return handleUI(req, res);
     if (pathname === '/health' || pathname === '/ping') return handleHealthCheck(req, res);
     if (pathname === '/themes') return handleThemeList(req, res);
-    if (pathname === '/api') return handleApiRequest(req, res, url);
+    if (pathname === '/api') return handleApiRequest(res, url);
 
-    return handleNotFound(req, res);
+    return handleNotFound(res);
   } catch {
     sendErrorSvg(res, 500, 'Gateway Collapse', 'An unexpected system failure occurred.');
   }

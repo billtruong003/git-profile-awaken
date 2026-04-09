@@ -8,20 +8,22 @@ const ERROR_TEXT = '#e0e6ed';
 const ERROR_MUTED = '#4b618f';
 const ERROR_ACCENT = '#ff2244';
 
+const SYSTEM_CODE_MAP: Record<number, string> = {
+  400: 'INVALID_PARAMETER',
+  401: 'AUTH_FAILURE',
+  403: 'ACCESS_DENIED',
+  404: 'ENTITY_NOT_FOUND',
+  429: 'MANA_DEPLETED',
+  500: 'SYSTEM_CRITICAL_FAILURE',
+  504: 'GATEWAY_TIMEOUT',
+};
+
 export const buildErrorSvg = (statusCode: number, title: string, detail: string): string => {
   const safeTitle = escapeSvgText(title);
   const safeDetail = escapeSvgText(detail);
+  const systemCode = SYSTEM_CODE_MAP[statusCode] ?? 'UNKNOWN_ANOMALY';
 
-  const systemCodeMap: Record<number, string> = {
-    400: 'INVALID_PARAMETER',
-    403: 'ACCESS_DENIED',
-    404: 'ENTITY_NOT_FOUND',
-    429: 'MANA_DEPLETED',
-    500: 'SYSTEM_CRITICAL_FAILURE',
-  };
-  const systemCode = systemCodeMap[statusCode] ?? 'UNKNOWN_ANOMALY';
-
-  return `<svg width="${ERROR_WIDTH}" height="${ERROR_HEIGHT}" viewBox="0 0 ${ERROR_WIDTH} ${ERROR_HEIGHT}" fill="none" xmlns="http://www.w3.org/2000/svg">
+  return `<svg width="${ERROR_WIDTH}" height="${ERROR_HEIGHT}" viewBox="0 0 ${ERROR_WIDTH} ${ERROR_HEIGHT}" fill="none" xmlns="http://www.w3.org/2000/svg" role="img">
   <style>
     @keyframes flicker { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
     .err-font { font-family: -apple-system, 'Segoe UI', Ubuntu, sans-serif; }

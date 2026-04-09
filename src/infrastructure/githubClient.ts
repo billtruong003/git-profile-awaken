@@ -1,10 +1,12 @@
 import type { RawGithubData, CombinedGithubData } from '../domain/types.js';
 
-const FETCH_TIMEOUT_MS = 8_000;
+const GRAPHQL_TIMEOUT_MS = 7_000;
+const REST_SEARCH_TIMEOUT_MS = 3_000;
 const CACHE_LIFETIME_MS = 5 * 60 * 1_000;
 const REFRESH_THROTTLE_MS = 5_000;
-const RETRY_STATUS_CODES = new Set([502, 503, 504]);
+const MAX_CACHE_ENTRIES = 500;
 const RETRY_DELAY_MS = 800;
+const RETRY_STATUS_CODES = new Set([502, 503, 504]);
 
 const buildUserProfileQuery = (username: string) => ({
   query: `
@@ -35,27 +37,36 @@ const buildUserProfileQuery = (username: string) => ({
 
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-const parseGithubError = (status: number, fallback: string): string => {
-  if (status === 401) return 'Invalid GitHub token. Check your GITHUB_TOKEN.';
+const parseApiError = (status: number): string => {
+  if (status === 401) return 'Invalid GitHub token. Check GITHUB_TOKEN configuration.';
   if (status === 403) return 'GitHub API rate limit exceeded. Retry in a few minutes.';
   if (status >= 500) return `GitHub server error (${status}). Retry shortly.`;
-  return `GitHub API responded with ${status}: ${fallback}`;
+  return `GitHub API responded with status ${status}.`;
 };
 
 const fetchGraphqlProfile = async (username: string, token: string, attempt = 0): Promise<RawGithubData> => {
-  const response = await fetch('https://api.github.com/graphql', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(buildUserProfileQuery(username)),
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-  });
+  let response: Response;
+
+  try {
+    response = await fetch('https://api.github.com/graphql', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildUserProfileQuery(username)),
+      signal: AbortSignal.timeout(GRAPHQL_TIMEOUT_MS),
+    });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'TimeoutError') {
+      throw new Error('GitHub API is responding slowly. Please retry in a moment.');
+    }
+    throw err;
+  }
 
   if (!response.ok) {
     if (attempt === 0 && RETRY_STATUS_CODES.has(response.status)) {
       await delay(RETRY_DELAY_MS);
       return fetchGraphqlProfile(username, token, 1);
     }
-    throw new Error(parseGithubError(response.status, response.statusText));
+    throw new Error(parseApiError(response.status));
   }
 
   const payload = await response.json();
@@ -73,7 +84,7 @@ const fetchLifetimeCommitCount = async (username: string, token: string): Promis
       `https://api.github.com/search/commits?q=author:${encodeURIComponent(username)}`,
       {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github.cloak-preview+json' },
-        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+        signal: AbortSignal.timeout(REST_SEARCH_TIMEOUT_MS),
       },
     );
     if (!response.ok) return 0;
@@ -92,12 +103,47 @@ interface CacheEntry {
 const dataCache = new Map<string, CacheEntry>();
 const pendingFetches = new Map<string, Promise<CombinedGithubData>>();
 
+const evictStaleEntries = (): void => {
+  if (dataCache.size <= MAX_CACHE_ENTRIES) return;
+
+  const now = Date.now();
+  const staleKeys: string[] = [];
+
+  for (const [key, entry] of dataCache) {
+    if (now - entry.createdAt > CACHE_LIFETIME_MS) {
+      staleKeys.push(key);
+    }
+  }
+
+  for (const key of staleKeys) {
+    dataCache.delete(key);
+  }
+
+  if (dataCache.size > MAX_CACHE_ENTRIES) {
+    const oldest = Array.from(dataCache.entries())
+      .sort((a, b) => a[1].createdAt - b[1].createdAt)
+      .slice(0, dataCache.size - MAX_CACHE_ENTRIES);
+
+    for (const [key] of oldest) {
+      dataCache.delete(key);
+    }
+  }
+};
+
 const executeFetch = async (username: string, token: string): Promise<CombinedGithubData> => {
-  const [graphql, restCommitCount] = await Promise.all([
+  const [graphqlResult, restResult] = await Promise.allSettled([
     fetchGraphqlProfile(username, token),
     fetchLifetimeCommitCount(username, token),
   ]);
 
+  if (graphqlResult.status === 'rejected') {
+    throw graphqlResult.reason instanceof Error
+      ? graphqlResult.reason
+      : new Error(String(graphqlResult.reason));
+  }
+
+  const graphql = graphqlResult.value;
+  const restCommitCount = restResult.status === 'fulfilled' ? restResult.value : 0;
   const graphqlFallbackCommits = graphql.user.contributionsCollection.contributionCalendar.totalContributions;
   const allTimeCommits = restCommitCount > 0 ? restCommitCount : graphqlFallbackCommits;
 
@@ -123,6 +169,7 @@ export const fetchGithubData = (
 
   const promise = executeFetch(username, token)
     .then((result) => {
+      evictStaleEntries();
       dataCache.set(username, { data: result, createdAt: Date.now() });
       pendingFetches.delete(username);
       return result;
