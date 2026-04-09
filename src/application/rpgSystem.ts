@@ -17,23 +17,28 @@ const OVERALL_POWER_THRESHOLDS = [50, 150, 300, 600, 1000, 1800, 2800, 4000];
 
 const WEEKLY_CHART_SIZE = 16;
 
+const resolveGradeFromThresholds = (
+  value: number,
+  thresholds: number[],
+): { grade: RankGrade; progress: number } => {
+  for (let i = 0; i < thresholds.length; i++) {
+    if (value < thresholds[i]!) {
+      const prevThreshold = i === 0 ? 0 : thresholds[i - 1]!;
+      const range = thresholds[i]! - prevThreshold || 1;
+      const progress = Math.min(Math.max(((value - prevThreshold) / range) * 100, 0), 100);
+      return { grade: GRADES[i]!, progress };
+    }
+  }
+  return { grade: GRADES[GRADES.length - 1]!, progress: 100 };
+};
+
 export const calculateGrade = (
   value: number,
   thresholds: number[],
   theme: ThemeConfig,
 ): { grade: RankGrade; progress: number; color: string } => {
-  for (let i = 0; i < thresholds.length; i++) {
-    if (value < thresholds[i]!) {
-      const prevThreshold = i === 0 ? 0 : thresholds[i - 1]!;
-      const currentThreshold = thresholds[i]!;
-      const range = currentThreshold - prevThreshold || 1;
-      const progress = ((value - prevThreshold) / range) * 100;
-      const grade = GRADES[i]!;
-      return { grade, progress: Math.min(Math.max(progress, 0), 100), color: theme.rankColors[grade] };
-    }
-  }
-  const maxGrade = GRADES[GRADES.length - 1]!;
-  return { grade: maxGrade, progress: 100, color: theme.rankColors[maxGrade] };
+  const { grade, progress } = resolveGradeFromThresholds(value, thresholds);
+  return { grade, progress, color: theme.rankColors[grade] };
 };
 
 export const calculateOverallLevel = (
@@ -50,7 +55,7 @@ export const calculateOverallLevel = (
   const nextLevelExpCeiling = Math.pow(level, 2) * 100;
 
   const overallPower = str * 1.5 + agi * 2 + int * 2 + vit + luk + cha;
-  const overallRank = calculateGrade(overallPower, OVERALL_POWER_THRESHOLDS, { rankColors: {} } as any).grade;
+  const { grade: overallRank } = resolveGradeFromThresholds(overallPower, OVERALL_POWER_THRESHOLDS);
 
   return {
     level,
