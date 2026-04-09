@@ -1,12 +1,11 @@
 import type { RawGithubData, CombinedGithubData } from '../domain/types.js';
 
-const GRAPHQL_TIMEOUT_MS = 7_000;
-const REST_SEARCH_TIMEOUT_MS = 5_000;
+const API_TIMEOUT_MS = 6_000;
 const PROFILE_CACHE_TTL_MS = 5 * 60 * 1_000;
 const COMMIT_COUNT_CACHE_TTL_MS = 60 * 60 * 1_000;
 const REFRESH_THROTTLE_MS = 5_000;
 const MAX_CACHE_ENTRIES = 500;
-const RETRY_DELAY_MS = 800;
+const RETRY_DELAY_MS = 600;
 const RETRY_STATUS_CODES = new Set([502, 503, 504]);
 
 const buildUserProfileQuery = (username: string) => ({
@@ -53,7 +52,7 @@ const fetchGraphqlProfile = async (username: string, token: string, attempt = 0)
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(buildUserProfileQuery(username)),
-      signal: AbortSignal.timeout(GRAPHQL_TIMEOUT_MS),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
   } catch (err) {
     if (err instanceof DOMException && err.name === 'TimeoutError') {
@@ -85,7 +84,7 @@ const fetchLifetimeCommitCount = async (username: string, token: string): Promis
       `https://api.github.com/search/commits?q=author:${encodeURIComponent(username)}`,
       {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github.cloak-preview+json' },
-        signal: AbortSignal.timeout(REST_SEARCH_TIMEOUT_MS),
+        signal: AbortSignal.timeout(API_TIMEOUT_MS),
       },
     );
     if (!response.ok) return 0;
@@ -130,36 +129,43 @@ const evictMap = <T>(map: Map<string, TimedEntry<T>>, ttl: number): void => {
   }
 };
 
-const resolveCommitCount = async (
-  username: string,
-  token: string,
-  graphqlFallback: number,
-): Promise<number> => {
+const getCachedCommitCount = (username: string): number | null => {
   const cached = commitCountCache.get(username);
+  if (!cached) return null;
+  if (Date.now() - cached.createdAt > COMMIT_COUNT_CACHE_TTL_MS) return null;
+  return cached.data;
+};
 
-  if (cached && Date.now() - cached.createdAt < COMMIT_COUNT_CACHE_TTL_MS) {
-    return Math.max(cached.data, graphqlFallback);
+const executeFetch = async (username: string, token: string): Promise<CombinedGithubData> => {
+  const cachedCommits = getCachedCommitCount(username);
+
+  if (cachedCommits !== null) {
+    const graphql = await fetchGraphqlProfile(username, token);
+    const graphqlTotal = graphql.user.contributionsCollection.contributionCalendar.totalContributions;
+    return { graphql, allTimeCommits: Math.max(cachedCommits, graphqlTotal) };
   }
 
-  const restCount = await fetchLifetimeCommitCount(username, token);
+  const [graphqlResult, restResult] = await Promise.allSettled([
+    fetchGraphqlProfile(username, token),
+    fetchLifetimeCommitCount(username, token),
+  ]);
+
+  if (graphqlResult.status === 'rejected') {
+    throw graphqlResult.reason instanceof Error
+      ? graphqlResult.reason
+      : new Error(String(graphqlResult.reason));
+  }
+
+  const graphql = graphqlResult.value;
+  const restCount = restResult.status === 'fulfilled' ? restResult.value : 0;
+  const graphqlTotal = graphql.user.contributionsCollection.contributionCalendar.totalContributions;
 
   if (restCount > 0) {
     evictMap(commitCountCache, COMMIT_COUNT_CACHE_TTL_MS);
     commitCountCache.set(username, { data: restCount, createdAt: Date.now() });
-    return restCount;
   }
 
-  if (cached && cached.data > 0) {
-    return cached.data;
-  }
-
-  return graphqlFallback;
-};
-
-const executeFetch = async (username: string, token: string): Promise<CombinedGithubData> => {
-  const graphql = await fetchGraphqlProfile(username, token);
-  const graphqlFallback = graphql.user.contributionsCollection.contributionCalendar.totalContributions;
-  const allTimeCommits = await resolveCommitCount(username, token, graphqlFallback);
+  const allTimeCommits = restCount > 0 ? restCount : graphqlTotal;
 
   return { graphql, allTimeCommits };
 };
