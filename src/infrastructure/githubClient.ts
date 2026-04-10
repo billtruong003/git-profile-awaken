@@ -1,6 +1,6 @@
 import type { RawGithubData, CombinedGithubData } from '../domain/types.js';
 
-const API_TIMEOUT_MS = 6_000;
+const API_TIMEOUT_MS = 10_000;
 const PROFILE_CACHE_TTL_MS = 5 * 60 * 1_000;
 const COMMIT_COUNT_CACHE_TTL_MS = 60 * 60 * 1_000;
 const REFRESH_THROTTLE_MS = 5_000;
@@ -56,6 +56,10 @@ const fetchGraphqlProfile = async (username: string, token: string, attempt = 0)
     });
   } catch (err) {
     if (err instanceof DOMException && err.name === 'TimeoutError') {
+      if (attempt === 0) {
+        await delay(RETRY_DELAY_MS);
+        return fetchGraphqlProfile(username, token, 1);
+      }
       throw new Error('GitHub API is responding slowly. Please retry in a moment.');
     }
     throw err;
@@ -196,6 +200,8 @@ export const fetchGithubData = (
     })
     .catch((err) => {
       pendingFetches.delete(username);
+      const stale = profileCache.get(username);
+      if (stale) return stale.data;
       throw err;
     });
 
