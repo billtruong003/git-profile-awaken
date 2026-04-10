@@ -5,7 +5,7 @@ const ADMIN_USER = 'billtruong003';
 
 export const processProfileData = (data: CombinedGithubData, mode: string | null, theme: ThemeConfig): CharacterProfile => {
   const user = data.graphql.user;
-  if (user.login === ADMIN_USER && mode !== 'mortal') {
+  if (user.login === ADMIN_USER && mode === 'admin') {
     return createAdminProfile(user.login, theme);
   }
 

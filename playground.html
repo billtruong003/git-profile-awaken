@@ -272,7 +272,7 @@
             const m = document.getElementById('mode').value;
 
             const bypassParam = forceBypass ? `&refresh=true&t=${Date.now()}` : '';
-            const b = `${BASE}/api?username=${u}&theme=${t}${m === 'mortal' ? '&mode=mortal' : ''}`;
+            const b = `${BASE}/api?username=${u}&theme=${t}&mode=${m}`;
 
             const mainOut = document.getElementById('main-output');
             const contribOut = document.getElementById('contribution-output');
