@@ -217,6 +217,7 @@ export const getSystemUiHtml = (): string => `<!DOCTYPE html>
     <div class="section-title">- INDIVIDUAL RUNES -</div>
     <div class="stat-grid" id="stat-output"></div>
 
+    <script defer src="https://cdn.vercel-insights.com/v1/script.js"></script>
     <script>
         const BASE = window.location.origin;
 
