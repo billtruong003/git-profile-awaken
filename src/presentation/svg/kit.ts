@@ -59,18 +59,27 @@ export const fit = (text: string, style: TypeStyle, maxWidth: number): string =>
 
 interface TextOptions {
   anchor?: 'start' | 'middle' | 'end';
+  /** Overrides the style's size (an inline style, so it wins over the class). */
+  size?: number;
   cls?: string;
   opacity?: number;
   filter?: string;
 }
 
 export const text = (x: number, y: number, value: string, style: TypeStyle, fill: string, o: TextOptions = {}): string =>
-  `<text x="${r(x)}" y="${r(y)}" class="${style}${o.cls ? ' ' + o.cls : ''}" fill="${fill}"${o.anchor && o.anchor !== 'start' ? ` text-anchor="${o.anchor}"` : ''}${o.opacity !== undefined ? ` opacity="${o.opacity}"` : ''}${o.filter ? ` filter="${o.filter}"` : ''}>${escapeSvgText(value)}</text>`;
+  `<text x="${r(x)}" y="${r(y)}" class="${style}${o.cls ? ' ' + o.cls : ''}" fill="${fill}"${o.anchor && o.anchor !== 'start' ? ` text-anchor="${o.anchor}"` : ''}${o.opacity !== undefined ? ` opacity="${o.opacity}"` : ''}${o.filter ? ` filter="${o.filter}"` : ''}${o.size ? ` style="font-size:${o.size}px"` : ''}>${escapeSvgText(value)}</text>`;
 
 export const label = (x: number, y: number, value: string, ctx: Ctx, o: TextOptions = {}): string =>
   text(x, y, value.toUpperCase(), 'label', ctx.t.muted, o);
 
 export const r = (n: number): string => (Number.isInteger(n) ? String(n) : n.toFixed(1));
+
+/** For tight columns: 38.7k from ten thousand up. */
+export const fmtShort = (n: number): string => {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 10_000) return `${(n / 1000).toFixed(1)}k`;
+  return n.toLocaleString('en-US');
+};
 
 export const fmt = (n: number): string => {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -136,7 +145,8 @@ export const sigil = (ctx: Ctx, rank: RankGrade, x: number, y: number, w: number
   const tier = TIER[rank];
   const c = h >= 70 ? 8 : 6;
   const sw = tier === 0 ? 1 : 2;
-  const size = TYPE[style].size;
+  // Two or three letters in the hero sigil would overflow it at 48 px.
+  const size = style === 'hero' && rank.length > 1 ? (rank.length === 2 ? 38 : 30) : TYPE[style].size;
   const id = `sg${sigilSeq++}`;
   const prism = tier === 3
     ? `<clipPath id="${id}"><path d="${cut(x, y, w, h, c)}"/></clipPath><g clip-path="url(#${id})"><rect class="sweep" x="${x - w}" y="${y}" width="${w}" height="${h}" fill="url(#prism)"/></g>`
@@ -146,7 +156,7 @@ export const sigil = (ctx: Ctx, rank: RankGrade, x: number, y: number, w: number
   return `<g${o.pulse ? ' class="pulse"' : ''}>
 <path d="${cut(x, y, w, h, c)}" fill="${t.void}"/>${prism}
 <path d="${cut(x + sw / 2, y + sw / 2, w - sw, h - sw, c - sw * 0.3)}" fill="none" stroke="${color}" stroke-width="${sw}"${glowing}/>${inner}
-${text(x + w / 2, y + h / 2 + size * 0.36, rank, style, color, { anchor: 'middle', ...(rank.length === 3 ? { cls: 'tight' } : {}) })}
+${text(x + w / 2, y + h / 2 + size * 0.36, rank, style, color, { anchor: 'middle', ...(rank.length === 3 ? { cls: 'tight' } : {}), ...(size !== TYPE[style].size ? { size } : {}) })}
 </g>`;
 };
 

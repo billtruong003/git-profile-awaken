@@ -5,6 +5,16 @@ import { escapeHtml, page } from './layout.js';
 
 const DEMO_USER = 'billtruong003';
 
+/** Well-known developers, drawn from public data by scripts/demo.ts and refreshed nightly. */
+const HUNTERS = [
+  { login: 'torvalds', name: 'Linus Torvalds', known: 'Linux, Git' },
+  { login: 'gaearon', name: 'Dan Abramov', known: 'React, Redux' },
+  { login: 'sindresorhus', name: 'Sindre Sorhus', known: '1,100+ open source repositories' },
+  { login: 'yyx990803', name: 'Evan You', known: 'Vue, Vite' },
+  { login: 'karpathy', name: 'Andrej Karpathy', known: 'nanoGPT, llm.c' },
+  { login: 'antfu', name: 'Anthony Fu', known: 'Vitest, UnoCSS, Slidev' },
+] as const;
+
 const CSS = `
 section{padding-block:88px 0}
 .section-head{display:flex;flex-direction:column;gap:14px;max-width:680px;margin-bottom:36px}
@@ -58,6 +68,19 @@ section{padding-block:88px 0}
 .theme:hover img{transform:translateY(-3px)}
 .theme span{display:flex;justify-content:space-between;color:var(--muted)}
 .theme span b{color:var(--ink);font-weight:600}
+
+/* Hall of Hunters */
+.hall{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 16px}
+@media (max-width:760px){.hall{grid-template-columns:1fr}}
+.hunter{margin:0;display:flex;flex-direction:column;gap:8px}
+.hunter figcaption{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:14px;color:var(--muted)}
+.hunter figcaption b{color:var(--ink);font-weight:600}
+.hunter figcaption a{font:600 12px/1 var(--fm)}
+.raid-stage{margin-top:28px;display:flex;flex-direction:column;gap:14px}
+.raid-stage .bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.pick{display:flex;flex-wrap:wrap;gap:6px}
+.pick button{min-height:36px;padding:0 12px;border:0;background:var(--raised);color:var(--muted);box-shadow:inset 0 0 0 1px var(--line);font:600 13px/1 var(--fm);cursor:pointer}
+.pick button[aria-pressed=true]{color:var(--void);background:var(--system);box-shadow:none}
 
 /* Steps */
 .steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;counter-reset:step}
@@ -130,6 +153,21 @@ const body = `
 <div class="toast" aria-hidden="true"><i>!</i>You have reached Rank C.</div>
 <img src="/demo/hunter-dark.svg" width="840" height="232" alt="Hunter license of ${DEMO_USER}: rank C, level 14, Holy Knight, title Night Owl">
 <img src="/demo/activity-dark.svg" width="840" height="268" alt="ARISE: every active day of the last year rises as a shadow knight">
+</div>
+</div>
+</section>
+
+<section id="hunters">
+<div class="wrap">
+<div class="section-head"><p class="eyebrow">[ Hall of Hunters ]</p><h2>Some well-known players, awakened.</h2><p>Drawn from their public GitHub data with the same code, each in a theme of its own, and refreshed every night.</p></div>
+<div class="hall">
+${HUNTERS.map((h) => `<figure class="hunter"><img src="/demo/hunters/${h.login}-hunter.svg" width="840" height="232" alt="Hunter license of ${h.login}" loading="lazy">
+<figcaption><span><b>${escapeHtml(h.name)}</b> · ${escapeHtml(h.known)}</span><a href="https://github.com/${h.login}">@${h.login}</a></figcaption></figure>`).join('')}
+</div>
+<div class="raid-stage">
+<div class="bar"><div class="pick" role="group" aria-label="Whose year to show">${HUNTERS.map((h, i) => `<button type="button" data-hunter="${h.login}" aria-pressed="${i === 0}">${h.login}</button>`).join('')}</div>
+<button class="btn btn-ghost" type="button" id="try-hunter">Try this username</button></div>
+<div class="ticks"><img id="hunter-activity" src="/demo/hunters/${HUNTERS[0].login}-activity.svg" width="840" height="292" alt="Activity of ${HUNTERS[0].login}" loading="lazy"></div>
 </div>
 </div>
 </section>
@@ -338,6 +376,20 @@ document.querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('clic
   catch { const r = document.createRange(); r.selectNodeContents($(b.dataset.copy)); getSelection().removeAllRanges(); getSelection().addRange(r); b.textContent = 'Press Ctrl+C'; }
   setTimeout(() => (b.textContent = 'Copy'), 1600);
 }));
+
+// Hall of Hunters: switch whose year is shown, or load them into the configurator.
+let hunter = document.querySelector('[data-hunter]').dataset.hunter;
+document.querySelectorAll('[data-hunter]').forEach((b) => b.addEventListener('click', () => {
+  hunter = b.dataset.hunter;
+  document.querySelectorAll('[data-hunter]').forEach((x) => x.setAttribute('aria-pressed', x === b));
+  $('hunter-activity').src = '/demo/hunters/' + hunter + '-activity.svg';
+  $('hunter-activity').alt = 'Activity of ' + hunter;
+}));
+$('try-hunter').addEventListener('click', () => {
+  $('username').value = hunter;
+  render(); preview();
+  $('setup').scrollIntoView();
+});
 
 render(); preview();
 `;

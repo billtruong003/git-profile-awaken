@@ -24,6 +24,27 @@ Every number on these images is real and comes from the GitHub API. They are reg
 
 **[Website and configurator](https://git-profile-awaken.vercel.app)** · **[User guide](docs/guide.md)** · **[Developer guide](docs/development.md)**
 
+## Hall of Hunters
+
+Well-known developers, drawn from their public data by the same code and refreshed every night.
+
+<table>
+<tr>
+<td><a href="https://github.com/torvalds"><img src="demo/hunters/torvalds-hunter.svg" alt="torvalds"></a></td>
+<td><a href="https://github.com/gaearon"><img src="demo/hunters/gaearon-hunter.svg" alt="gaearon"></a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/yyx990803"><img src="demo/hunters/yyx990803-hunter.svg" alt="yyx990803"></a></td>
+<td><a href="https://github.com/sindresorhus"><img src="demo/hunters/sindresorhus-hunter.svg" alt="sindresorhus"></a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/karpathy"><img src="demo/hunters/karpathy-hunter.svg" alt="karpathy"></a></td>
+<td><a href="https://github.com/antfu"><img src="demo/hunters/antfu-hunter.svg" alt="antfu"></a></td>
+</tr>
+</table>
+
+<img src="demo/hunters/torvalds-activity.svg" width="100%" alt="Dungeon Raid of torvalds">
+
 ## Quick start
 
 You need a profile repository (the repository named after your username, the one whose README shows on your profile).

@@ -1,6 +1,6 @@
 import type { Player, Stat } from '../../domain/types.js';
 import { gradeIndex } from '../../application/ranks.js';
-import { fit, fmt, footer, frame, gauge, glow, label, r, sigil, text, type Ctx, type Rendered } from '../svg/kit.js';
+import { fit, fmt, fmtShort, footer, frame, gauge, glow, label, r, sigil, text, type Ctx, type Rendered } from '../svg/kit.js';
 
 const synced = (p: Player): string => p.raw.fetchedAt.slice(0, 10);
 const classLine = (p: Player): string =>
@@ -69,7 +69,7 @@ export const hunterCard = (ctx: Ctx, p: Player): Rendered => {
   const mini = (s: Stat, i: number) => {
     const x = 500 + (i % 3) * 104;
     const y = f.y + 6 + Math.floor(i / 3) * 46;
-    return `${sigil(ctx, s.rank, x, y, 48, 32)}${label(x + 56, y + 12, s.code, ctx)}${text(x + 56, y + 30, fmt(s.value), 'value', t.ink)}`;
+    return `${sigil(ctx, s.rank, x, y, 48, 32)}${label(x + 56, y + 12, s.code, ctx)}${text(x + 56, y + 30, fmtShort(s.value), 'value', t.ink)}`;
   };
   const body = `${f.svg}
 ${label(f.x + 38, f.y + 6, 'Rank', ctx, { anchor: 'middle' })}

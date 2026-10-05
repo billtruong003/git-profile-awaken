@@ -6,16 +6,16 @@ interface JobClass {
 
 const CLASSES: readonly JobClass[] = [
   { name: 'Blade Master', element: 'Lightning', languages: ['TypeScript', 'JavaScript', 'CoffeeScript'] },
-  { name: 'Grand Magus', element: 'Arcane', languages: ['Python', 'Jupyter Notebook', 'R', 'Julia'] },
+  { name: 'Grand Magus', element: 'Arcane', languages: ['Python', 'Jupyter Notebook', 'R', 'Julia', 'MATLAB', 'Fortran'] },
   { name: 'Holy Knight', element: 'Light', languages: ['C#', 'Java', 'Kotlin', 'Scala', 'Groovy'] },
-  { name: 'Necromancer', element: 'Darkness', languages: ['C', 'C++', 'Rust', 'Go', 'Zig', 'Assembly', 'Nim'] },
+  { name: 'Necromancer', element: 'Darkness', languages: ['C', 'C++', 'Rust', 'Go', 'Zig', 'Assembly', 'Nim', 'Cuda'] },
   { name: 'Illusionist', element: 'Wind', languages: ['HTML', 'CSS', 'SCSS', 'Sass', 'Less', 'Vue', 'Svelte', 'Astro', 'MDX'] },
   { name: 'Alchemist', element: 'Fire', languages: ['PHP', 'Ruby', 'Perl', 'Blade'] },
   { name: 'Ranger', element: 'Wind', languages: ['Swift', 'Dart', 'Objective-C', 'Objective-C++'] },
   { name: 'Runesmith', element: 'Light', languages: ['ShaderLab', 'HLSL', 'GLSL', 'WGSL', 'Metal'] },
   { name: 'Summoner', element: 'Spirit', languages: ['GDScript', 'Lua', 'Luau'] },
-  { name: 'Warden', element: 'Earth', languages: ['Shell', 'PowerShell', 'Dockerfile', 'HCL', 'Nix', 'Makefile', 'Batchfile'] },
-  { name: 'Oracle', element: 'Time', languages: ['Haskell', 'Elixir', 'Erlang', 'Clojure', 'OCaml', 'F#', 'Elm', 'Gleam'] },
+  { name: 'Warden', element: 'Earth', languages: ['Shell', 'PowerShell', 'Dockerfile', 'HCL', 'Nix', 'Makefile', 'Batchfile', 'Emacs Lisp', 'Vim Script'] },
+  { name: 'Oracle', element: 'Time', languages: ['Haskell', 'Elixir', 'Erlang', 'Clojure', 'OCaml', 'F#', 'Elm', 'Gleam', 'Lean', 'Coq', 'Agda', 'Idris'] },
   { name: 'Arbiter', element: 'Law', languages: ['Solidity', 'Move', 'Cairo'] },
 ];
 

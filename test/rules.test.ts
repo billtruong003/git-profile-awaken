@@ -37,6 +37,7 @@ test('classes match whole language names, so CSS is no longer a Necromancer', ()
   assert.equal(awakenClass('C#').name, 'Holy Knight');
   assert.equal(awakenClass('Kotlin').name, 'Holy Knight');
   assert.equal(awakenClass('ShaderLab').name, 'Runesmith');
+  assert.equal(awakenClass('Lean').name, 'Oracle');
   assert.equal(awakenClass('Brainfuck').name, 'Novice');
   assert.equal(awakenClass(undefined).name, 'Novice');
 });
@@ -96,4 +97,12 @@ test('v1 widget URLs map onto the new widgets', async () => {
   assert.equal(legacyWidget('stat', null), 'rune-str');
   assert.equal(legacyWidget('skill', null), 'skills');
   assert.equal(legacyWidget('quest', null), 'quest');
+});
+
+test('short numbers fit tight columns', async () => {
+  const { fmtShort } = await import('../src/presentation/svg/kit.js');
+  assert.equal(fmtShort(9999), '9,999');
+  assert.equal(fmtShort(38714), '38.7k');
+  assert.equal(fmtShort(263249), '263.2k');
+  assert.equal(fmtShort(1046211), '1.0M');
 });

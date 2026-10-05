@@ -34,3 +34,21 @@ for (const theme of THEMES) {
   await write(`themes/${theme.id}.svg`, card.svg);
 }
 console.log(`Demo images for ${username} written to ${out}/`);
+
+// Hall of Hunters: well-known developers, drawn from their public data with each one's own theme.
+export const HUNTERS = [
+  { login: 'torvalds', theme: 'solo_leveling', activity: 'raid' },
+  { login: 'gaearon', theme: 'frost_elf', activity: 'arise' },
+  { login: 'sindresorhus', theme: 'hunter_association', activity: 'arise' },
+  { login: 'yyx990803', theme: 'genshin_anemo', activity: 'raid' },
+  { login: 'karpathy', theme: 'shadow_monarch', activity: 'arise' },
+  { login: 'antfu', theme: 'red_gate', activity: 'arise' },
+] as const;
+
+await mkdir(join(out, 'hunters'), { recursive: true });
+for (const hunter of HUNTERS) {
+  const { config: c } = resolveConfig({ username: hunter.login, theme: hunter.theme, activity: hunter.activity, motion: 'full' });
+  const hero = buildPlayer(await fetchRawProfile(hunter.login, token, { timeZone: 'UTC', commitHours: false }), 'auto');
+  for (const file of renderWidgets(hero, c, 'dark', ['hunter', 'activity'])) await write(`hunters/${hunter.login}-${file.name}.svg`, file.svg);
+  console.log(`  ${hunter.login}: LV ${hero.level}, rank ${hero.overall}, ${hero.jobClass.name}, title ${hero.equippedTitle?.title ?? 'none'}`);
+}
