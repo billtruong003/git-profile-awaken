@@ -13,7 +13,7 @@ const ALIASES: Record<string, string> = {
   spark: 'apachespark', airflow: 'apacheairflow', maven: 'apachemaven', springboot: 'springboot', jwt: 'jsonwebtokens',
   vscode: 'visualstudiocode', intellij: 'intellijidea', drawio: 'diagramsdotnet', mui: 'mui', materialui: 'mui',
   shadcn: 'shadcnui', antd: 'antdesign', framermotion: 'framer', gemini: 'googlegemini', colab: 'googlecolab',
-  hf: 'huggingface', shaderlab: 'unity', jupyternotebook: 'jupyter', gdscript: 'godotengine', hcl: 'terraform',
+  hf: 'huggingface', metaquest: 'meta', shaderlab: 'unity', jupyternotebook: 'jupyter', gdscript: 'godotengine', hcl: 'terraform',
   dockerfile: 'docker', scss: 'sass', vimscript: 'vim', 'objective-c++': 'cplusplus', es: 'elasticsearch', rn: 'react', ros2: 'ros', esp32: 'espressif', stm32: 'stmicroelectronics',
 };
 

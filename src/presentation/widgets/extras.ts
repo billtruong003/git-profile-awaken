@@ -251,7 +251,7 @@ ${e.years ? text(f.x + f.w, y + 14, e.years, 'caption', t.muted, { anchor: 'end'
 <line x1="${f.x}" y1="${y + 34.5}" x2="${f.x + f.w}" y2="${y + 34.5}" stroke="${t.line}"/>`;
   }).join('');
   const cv = extras.config.cv;
-  const cvName = cv ? (cv.startsWith('https://') ? 'résumé' : cv.split('/').pop()!) : '';
+  const cvName = cv ? (cv.startsWith('https://') ? new URL(cv).hostname.replace(/^www\./, '') : cv.split('/').pop()!) : '';
   const body = `${f.svg}
 ${label(f.x, f.y + 6, 'Quests completed', ctx)}
 ${text(f.x + f.w, f.y + 6, `${extras.config.career.length} quests`, 'caption', t.muted, { anchor: 'end' })}
@@ -301,8 +301,8 @@ export const levelUpWidget = (ctx: Ctx, p: Player, events: ProgressEvent[]): Ren
     const ranked = isGrade(e.from) && isGrade(e.to);
     const from = e.kind === 'achievement' ? `T${e.from}` : e.from;
     const to = e.kind === 'achievement' ? `T${e.to}` : e.to;
-    const lx = x + Math.min(96, textWidth(name.toUpperCase(), 'label') + 12);
-    const shownName = fit(name.toUpperCase(), 'label', 90);
+    const lx = x + Math.min(118, textWidth(name.toUpperCase(), 'label') + 12);
+    const shownName = fit(name.toUpperCase(), 'label', 110);
     if (ranked) {
       return `${text(x, y + 23, shownName, 'label', t.muted)}${sigil(ctx, e.from as RankGrade, lx, y + 4, 44, 28)}${chevron(lx + 54, y + 23, t.system)}${sigil(ctx, e.to as RankGrade, lx + 68, y + 4, 44, 28)}`;
     }
