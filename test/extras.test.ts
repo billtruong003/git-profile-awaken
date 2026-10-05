@@ -80,3 +80,14 @@ test('layouts, career and cv are validated', () => {
   assert.equal(bad.problems.length, 3);
   assert.equal(bad.config.extras.cv, null);
 });
+
+test('quote pools can be mixed with your own lines', async () => {
+  const { DRY_QUOTES, quotePool } = await import('../src/application/quotes.js');
+  const mine = { text: 'Ship it.', author: 'Me' };
+  const { config, problems } = resolveConfig({ username: 'player-one', quotes: ['dry', mine] });
+  assert.deepEqual(problems, []);
+  assert.equal(quotePool(config.extras.quotes).length, DRY_QUOTES.length + 1);
+  assert.equal(resolveConfig({ username: 'player-one', quotes: 'dry' }).config.extras.quotes, 'dry');
+  assert.equal(resolveConfig({ username: 'player-one', quotes: ['funny'] }).problems.length, 1);
+  assert.ok(DRY_QUOTES.length >= 40 && DRY_QUOTES.every((q) => q.text.length <= 160));
+});

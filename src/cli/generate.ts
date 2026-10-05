@@ -5,7 +5,7 @@ import { parseArgs } from 'node:util';
 import { resolveArsenal } from '../application/arsenal.js';
 import { buildPlayer } from '../application/player.js';
 import { diffProgress, type Snapshot } from '../application/progress.js';
-import { BUILTIN_QUOTES, quoteOfTheDay } from '../application/quotes.js';
+import { quoteOfTheDay, quotePool } from '../application/quotes.js';
 import { resolveConfig, type FileConfig } from '../config/config.js';
 import { embedFonts } from '../infrastructure/fonts.js';
 import { fetchFeeds, fetchSpotlight } from '../infrastructure/extras.js';
@@ -85,7 +85,7 @@ const main = async () => {
     arsenal: arsenal.items,
     spotlight,
     feed,
-    quote: quoteOfTheDay(extras.quotes === 'builtin' ? BUILTIN_QUOTES : extras.quotes, raw.login, raw.fetchedAt),
+    quote: quoteOfTheDay(quotePool(extras.quotes), raw.login, raw.fetchedAt),
     events,
   };
   if (events.length && previous) console.log(`Progress since the last run: ${events.filter((e) => e.at === raw.fetchedAt).map((e) => `${e.subject} ${e.from} → ${e.to}`).join(', ') || 'none new'}`);

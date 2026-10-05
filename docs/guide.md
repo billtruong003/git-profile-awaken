@@ -117,7 +117,7 @@ Set `timezone` in `awaken.json` to the same zone. It decides which hour each com
 | `arsenal` | your languages | Up to 24 technologies for the Arsenal inventory, by name or slug (`"Unity"`, `"nextjs"`, `"PostgreSQL"`). 602 logos; anything else becomes a monogram. |
 | `spotlight` | pinned | Repositories for Repo Spotlight, `"name"` or `"owner/name"`. Empty means your pinned repositories. |
 | `feeds` | `[]` | Up to 4 RSS or Atom feeds for the Quest Board: a blog, or a YouTube channel (`https://www.youtube.com/feeds/videos.xml?channel_id=…`). |
-| `quotes` | `builtin` | The Oracle Scroll's quote of the day: `builtin`, or your own list of `{ "text", "author" }`. |
+| `quotes` | `builtin` | The Oracle Scroll's quote of the day: `builtin` (famous lines about software), `dry` (40 dry developer jokes), or a list mixing those names with your own `{ "text", "author" }`, e.g. `["dry", { "text": "…", "author": "Me" }]`. |
 | `career` | `[]` | Up to 6 `{ "role", "org", "years", "current" }` entries for the Career Log. |
 | `cv` | | Your résumé: a file in the profile repository (`"cv.pdf"`) or an `https://` link. Adds the CV link and a download rune. |
 | `outDir` | `awaken` | The folder for the SVGs. |

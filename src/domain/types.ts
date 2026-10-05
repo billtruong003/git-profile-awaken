@@ -214,8 +214,8 @@ export interface ExtrasConfig {
   spotlight: string[];
   /** RSS or Atom feeds: a blog, or a YouTube channel (youtube.com/feeds/videos.xml?channel_id=…). */
   feeds: string[];
-  /** "builtin" rotates the bundled quotes daily; a list rotates yours. */
-  quotes: 'builtin' | { text: string; author: string }[];
+  /** "builtin" (famous lines) or "dry" (dry dev jokes) rotate a bundled pool daily; a list can mix pools and your own. */
+  quotes: QuoteSetting;
   career: CareerEntry[];
   /** A path in your profile repository (cv.pdf) or an https:// link to your résumé. */
   cv: string | null;
@@ -237,6 +237,9 @@ export interface FeedItem {
   date: string;
   source: string;
 }
+
+export type QuotePool = 'builtin' | 'dry';
+export type QuoteSetting = QuotePool | (QuotePool | { text: string; author: string })[];
 
 export interface Quote {
   text: string;

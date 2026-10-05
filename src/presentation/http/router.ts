@@ -16,6 +16,7 @@ import { homePage } from '../web/home.js';
 import { renderBento } from '../layouts.js';
 import { extrasOf, renderWidgets } from '../widgets/index.js';
 import { resolveArsenal } from '../../application/arsenal.js';
+import { DRY_QUOTES, quoteOfTheDay } from '../../application/quotes.js';
 import { TECH_ICONS } from '../svg/brandIcons.js';
 
 const store = createStore();
@@ -75,6 +76,7 @@ const handleApi = async (res: ServerResponse, url: URL): Promise<void> => {
   try {
     const player = buildPlayer(await rawProfileFor(username, token, store), config.title);
     // The configurator previews the Arsenal with the logos picked so far.
+    if (widget === 'oracle' && q.get('quotes') === 'dry') player.extras = { ...extrasOf(player), quote: quoteOfTheDay(DRY_QUOTES, player.raw.login, player.raw.fetchedAt) };
     const arsenal = q.get('arsenal');
     if (widget === 'arsenal' && arsenal) {
       const names = arsenal.split(',').map((x) => x.trim()).filter(Boolean).slice(0, 24);

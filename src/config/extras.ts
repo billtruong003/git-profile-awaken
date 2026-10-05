@@ -131,10 +131,12 @@ export const resolveExtras = (input: RawExtras, problems: string[]): ExtrasConfi
   });
 
   let quotes: ExtrasConfig['quotes'] = 'builtin';
-  if (input.quotes !== undefined && input.quotes !== 'builtin') {
+  const isPool = (q: unknown): q is 'builtin' | 'dry' => q === 'builtin' || q === 'dry';
+  if (input.quotes !== undefined) {
     const list = Array.isArray(input.quotes) ? input.quotes : null;
-    const valid = list?.filter((q): q is Quote => isRecord(q) && typeof q.text === 'string' && typeof q.author === 'string' && q.text.length <= 160);
-    if (!list || !valid || valid.length !== list.length || valid.length === 0) problems.push('"quotes" must be "builtin" or a list of { "text" (up to 160 characters), "author" }.');
+    const valid = list?.filter((q): q is Quote | 'builtin' | 'dry' => isPool(q) || (isRecord(q) && typeof q.text === 'string' && typeof q.author === 'string' && q.text.length <= 160));
+    if (isPool(input.quotes)) quotes = input.quotes;
+    else if (!list || !valid || valid.length !== list.length || valid.length === 0) problems.push('"quotes" must be "builtin", "dry", or a list mixing those with { "text" (up to 160 characters), "author" }.');
     else quotes = valid;
   }
 
