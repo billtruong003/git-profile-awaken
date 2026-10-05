@@ -28,10 +28,12 @@ export const buildPlayer = (raw: RawProfile, wantedTitle: string): Player => {
     raw.stars * 20 +
     raw.followers * 30;
 
+  const overall = overallRank(stats);
   return {
     raw,
     ...levelFor(exp),
-    overall: overallRank(stats),
+    overall: overall.rank,
+    overallPercentile: overall.percentile,
     jobClass: awakenClass(raw.languages[0]?.name),
     stats,
     achievements,

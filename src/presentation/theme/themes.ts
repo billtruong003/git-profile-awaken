@@ -94,6 +94,17 @@ const seed = (bg: string, panel: string, ink: string, muted: string, system: str
 
 const DAYLIGHT_SEED = seed(SYSTEM_LIGHT.void, SYSTEM_LIGHT.panel, SYSTEM_LIGHT.ink, SYSTEM_LIGHT.muted, SYSTEM_LIGHT.system, SYSTEM_LIGHT.frame);
 
+/** Rice paper and cinnabar ink: a light theme in both modes, with the Daylight rank colors. */
+const INK_WASH = derive(seed('#f1ece2', '#fbf8f1', '#1c1912', '#5c5444', '#b0342b', '#8a7c63'), SYSTEM_LIGHT);
+
+/** Theme groups for the configurator and the docs. */
+export const THEME_PACKS: { name: string; ids: string[] }[] = [
+  { name: 'System', ids: ['solo_leveling', 'shadow_monarch', 'red_gate', 'frost_elf', 'demon_castle', 'hunter_association', 'daylight'] },
+  { name: 'Cultivation', ids: ['jade_sect', 'crimson_sect', 'celestial_gold', 'ink_wash'] },
+  { name: 'Editor', ids: ['cyberpunk', 'dracula', 'tokyonight', 'monokai', 'gruvbox', 'nord', 'synthwave', 'matrix'] },
+  { name: 'Games', ids: ['hollow_knight', 'genshin_anemo', 'genshin_geo', 'genshin_electro', 'elden_ring', 'nier', 'bloodborne', 'valorant', 'hextech', 'retrowave', 'abyssal', 'infernal'] },
+];
+
 export const THEMES: Theme[] = [
   { id: 'solo_leveling', name: 'Solo Leveling (System)', dark: SYSTEM_DARK, light: SYSTEM_LIGHT },
   fromSeed('shadow_monarch', 'Shadow Monarch', seed('#07050f', '#100b1f', '#ece6ff', '#a397c7', '#9d7bff', '#4a3a8a'),
@@ -131,6 +142,14 @@ export const THEMES: Theme[] = [
   fromSeed('retrowave', 'Retrowave', seed('#190724', '#220a33', '#ffe6ff', '#a472ba', '#05d9e8', '#4d206b')),
   fromSeed('abyssal', 'Abyssal', seed('#030b14', '#06121f', '#c2d1e0', '#42678c', '#00b4d8', '#132b45')),
   fromSeed('infernal', 'Infernal', seed('#120404', '#1a0808', '#ffcccc', '#994c4c', '#ff3333', '#3d1414')),
+  // Cultivation pack (Tu Tiên): jade, blood, celestial gold and ink wash. Rank colors stay the System's.
+  fromSeed('jade_sect', 'Jade Sect', seed('#04110d', '#08201a', '#e8f6ef', '#8fbcaa', '#3fd6a3', '#2f8a6f'),
+    seed('#f1f8f4', '#ffffff', '#0b2a20', '#466a5c', '#12805c', '#8fc4b0')),
+  fromSeed('crimson_sect', 'Crimson Sect', seed('#120407', '#1f080d', '#fceaee', '#cc9ea7', '#ff5a76', '#9a3343'),
+    seed('#fcf3f5', '#ffffff', '#2c0a12', '#7a4652', '#c0213f', '#e2a6b2')),
+  fromSeed('celestial_gold', 'Celestial Gold', seed('#0e0a03', '#1a1407', '#fcf4e2', '#cdb98e', '#f4c652', '#937227'),
+    seed('#fbf7ec', '#ffffff', '#2a1f08', '#6b5a33', '#8a6400', '#d6c18c')),
+  { id: 'ink_wash', name: 'Ink Wash', dark: INK_WASH, light: INK_WASH },
 ];
 
 export const THEME_IDS = THEMES.map((t) => t.id);

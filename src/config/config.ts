@@ -1,9 +1,10 @@
-import { WIDGET_IDS, type AwakenConfig, type WidgetId } from '../domain/types.js';
+import { LAYOUT_IDS, WIDGET_IDS, type AwakenConfig, type WidgetId } from '../domain/types.js';
 import { isValidGithubUsername } from '../infrastructure/sanitizer.js';
 import { THEME_IDS } from '../presentation/theme/themes.js';
 import { ACHIEVEMENTS } from '../application/achievements.js';
+import { EMPTY_EXTRAS, resolveExtras, type RawExtras } from './extras.js';
 
-export interface FileConfig extends Partial<Omit<AwakenConfig, 'widgets'>> {
+export interface FileConfig extends Partial<Omit<AwakenConfig, 'widgets' | 'extras'>>, RawExtras {
   widgets?: string[];
   /** Fetch commit times for the Hunting Hours clock and the hour-based achievements. */
   hours?: boolean;
@@ -17,9 +18,11 @@ export const DEFAULTS: AwakenConfig & { hours: boolean } = {
   icons: 'rune',
   motion: 'full',
   timezone: 'UTC',
+  layout: 'default',
   widgets: ['hunter', 'status', 'achievements', 'activity', 'quest', 'skills', 'contribution', 'combat', 'hours', 'daily', 'runes'],
   outDir: 'awaken',
   readme: 'README.md',
+  extras: EMPTY_EXTRAS,
   hours: true,
 };
 
@@ -63,10 +66,13 @@ export const resolveConfig = (input: FileConfig): { config: AwakenConfig & { hou
     icons: oneOf(input.icons, ['rune', 'brand'] as const, 'icons', problems) ?? DEFAULTS.icons,
     motion: oneOf(input.motion, ['full', 'calm', 'none'] as const, 'motion', problems) ?? DEFAULTS.motion,
     timezone: timezone ?? DEFAULTS.timezone,
+    // A widget list without a layout keeps working the way it did before layouts existed.
+    layout: oneOf(input.layout, LAYOUT_IDS, 'layout', problems) ?? (widgets?.length ? 'custom' : DEFAULTS.layout),
     widgets: widgets?.length ? widgets : DEFAULTS.widgets,
     outDir: input.outDir ?? DEFAULTS.outDir,
     readme: input.readme === null ? null : input.readme ?? DEFAULTS.readme,
     hours: input.hours ?? DEFAULTS.hours,
+    extras: resolveExtras(input, problems),
   };
   return { config, problems };
 };

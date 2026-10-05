@@ -152,12 +152,51 @@ export const sigil = (ctx: Ctx, rank: RankGrade, x: number, y: number, w: number
     ? `<clipPath id="${id}"><path d="${cut(x, y, w, h, c)}"/></clipPath><g clip-path="url(#${id})"><rect class="sweep" x="${x - w}" y="${y}" width="${w}" height="${h}" fill="url(#prism)"/></g>`
     : '';
   const inner = tier >= 2 ? `<path d="${cut(x + 4.5, y + 4.5, w - 9, h - 9, Math.max(2, c - 3))}" fill="none" stroke="${color}" stroke-width="1"/>` : '';
-  const glowing = tier >= 2 ? glowAttr(ctx) : '';
+  const outline = cut(x + sw / 2, y + sw / 2, w - sw, h - sw, c - sw * 0.3);
   return `<g${o.pulse ? ' class="pulse"' : ''}>
+${fxGlow(ctx, rank, `<path d="${outline}" fill="none" stroke="${color}" stroke-width="3"/>`)}
 <path d="${cut(x, y, w, h, c)}" fill="${t.void}"/>${prism}
-<path d="${cut(x + sw / 2, y + sw / 2, w - sw, h - sw, c - sw * 0.3)}" fill="none" stroke="${color}" stroke-width="${sw}"${glowing}/>${inner}
+<path d="${outline}" fill="none" stroke="${color}" stroke-width="${sw}"/>${inner}
 ${text(x + w / 2, y + h / 2 + size * 0.36, rank, style, color, { anchor: 'middle', ...(rank.length === 3 ? { cls: 'tight' } : {}), ...(size !== TYPE[style].size ? { size } : {}) })}
+${fxShine(ctx, rank, cut(x, y, w, h, c), x, y, w, h)}${rank === 'EX' ? sparks(ctx, x, y, w, h) : ''}
 </g>`;
+};
+
+// ---------- rank effects (A and up) ----------
+/** A glows, S pulses, SS shimmers, SSS burns, EX adds a prism and sparks. Below A nothing moves. */
+export const FX: Partial<Record<RankGrade, string>> = { A: 'fx-a', S: 'fx-s', SS: 'fx-ss', SSS: 'fx-sss', EX: 'fx-ex' };
+const SHINE_S: Partial<Record<RankGrade, number>> = { A: 4, S: 3.2, SS: 3.2, SSS: 1.9, EX: 2.4 };
+let fxSeq = 0;
+
+/** A blurred copy of `shape` behind it that breathes at the rank's pace. Dark grounds only. */
+export const fxGlow = (ctx: Ctx, rank: RankGrade, shape: string): string =>
+  FX[rank] && ctx.t.glow && ctx.motion !== 'none' ? `<g class="${FX[rank]}" filter="url(#fx-blur)" opacity="0.75">${shape}</g>` : '';
+
+/** A light band sweeping across the clip shape; SS and up, or every effect tier when `fromA`. */
+export const fxShine = (ctx: Ctx, rank: RankGrade, clipD: string, x: number, y: number, w: number, h: number, fromA = false): string => {
+  if (ctx.motion !== 'full' || !FX[rank] || (!fromA && (TIER[rank] < 2 || rank === 'S'))) return '';
+  const id = `fs${fxSeq++}`;
+  return `<clipPath id="${id}"><path d="${clipD}"/></clipPath><g clip-path="url(#${id})"><rect class="shine" x="${r(x - w * 0.45)}" y="${r(y)}" width="${r(w * 0.45)}" height="${r(h)}" fill="url(#shine)" style="animation-duration:${SHINE_S[rank]}s"/></g>`;
+};
+
+const SPARKS = [[0.12, -0.08, 0], [0.92, 0.18, 0.6], [0.08, 0.86, 1.2], [0.78, 1.02, 1.8]] as const;
+export const sparks = (ctx: Ctx, x: number, y: number, w: number, h: number): string =>
+  ctx.motion === 'none' ? '' : SPARKS.map(([fx, fy, d]) => {
+    const cx = x + fx * w, cy = y + fy * h;
+    return `<path class="spark" d="M${r(cx)} ${r(cy - 2.8)}L${r(cx + 2.8)} ${r(cy)}L${r(cx)} ${r(cy + 2.8)}L${r(cx - 2.8)} ${r(cy)}Z" fill="${ctx.t.rank.EX}" style="animation-delay:${d}s"/>`;
+  }).join('');
+
+// ---------- percentiles ----------
+/** "TOP 0.92%": the share of regular players at or above this percentile. */
+export const topShare = (percentile: number): string => {
+  const t = Math.max(0.01, (1 - percentile) * 100);
+  return `TOP ${t < 0.1 ? t.toFixed(2) : t < 10 ? t.toFixed(1) : t.toFixed(0)}%`;
+};
+
+/** Ladder and stat-web position: log scale of the top share, 0 at 100% to 1 at the top 0.005%. */
+export const ladderPos = (percentile: number): number => {
+  const top = Math.max(0.006, (1 - percentile) * 100);
+  return Math.min(1, Math.max(0, Math.log10(100 / top) / Math.log10(100 / 0.005)));
 };
 
 /** Gauge: label left, real quantity right, square-ended bar below. */
@@ -176,3 +215,28 @@ export const use = (icon: string, x: number, y: number, size: number, fill: stri
 
 export const dot = (x: number, y: number, color: string, ring: string): string =>
   `<circle cx="${r(x)}" cy="${r(y)}" r="4" fill="${color}" stroke="${ring}" stroke-width="1"/>`;
+
+/** Greedy word wrap with the type metrics; the last line gets an ellipsis when words are left over. */
+export const wrap = (value: string, style: TypeStyle, maxWidth: number, maxLines: number, size?: number): string[] => {
+  const scale = size ? size / TYPE[style].size : 1;
+  const width = (s: string) => textWidth(s, style) * scale;
+  const lines: string[] = [];
+  let line = '';
+  const words = value.trim().split(/\s+/).filter(Boolean);
+  for (const [i, word] of words.entries()) {
+    const next = line ? `${line} ${word}` : word;
+    if (width(next) <= maxWidth || !line) {
+      line = next;
+      continue;
+    }
+    lines.push(line);
+    line = word;
+    if (lines.length === maxLines) {
+      const last = lines.pop()!;
+      lines.push(fit(`${last} ${words.slice(i).join(' ')}`, style, maxWidth / scale));
+      return lines;
+    }
+  }
+  if (line) lines.push(lines.length === maxLines ? line : width(line) > maxWidth ? fit(line, style, maxWidth / scale) : line);
+  return lines.slice(0, maxLines);
+};

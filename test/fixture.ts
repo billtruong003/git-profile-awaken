@@ -1,4 +1,4 @@
-import type { CalendarDay, RawProfile } from '../src/domain/types.js';
+import type { CalendarDay, Extras, ExtrasConfig, RawProfile } from '../src/domain/types.js';
 
 /** A year of days ending 2026-10-05 (a Monday), with a repeating, known pattern. */
 export const calendar = (pattern: (i: number) => number = (i) => (i % 7 === 3 ? 0 : (i * 7) % 13)): CalendarDay[] => {
@@ -36,4 +36,31 @@ export const rawProfile = (overrides: Partial<RawProfile> = {}): RawProfile => (
   commitHours: [23, 24, 26, 16, 18, 11, 4, 28, 45, 9, 22, 21, 26, 38, 19, 18, 21, 22, 18, 20, 9, 4, 12, 15],
   fetchedAt: '2026-10-05T12:00:00Z',
   ...overrides,
+});
+
+/** Everything a player can fill in, so every widget has something to draw. */
+export const fullConfig = {
+  username: 'player-one',
+  socials: [{ type: 'youtube', url: 'https://youtube.com/@x' }, { type: 'email', url: 'mailto:me@example.com' }, { type: 'website', url: 'https://example.com' }],
+  banner: { lines: ['Player one has logged in.', 'Unity developer & <teacher>'] },
+  bio: { role: 'Game developer', location: 'Vietnam', about: 'Builds free tools for game developers and teaches programming at night.' },
+  arsenal: ['Unity', 'C#', 'Blender', 'Photoshop', 'PostgreSQL', 'Docker'],
+  career: [{ role: 'Unity developer', org: 'Studio', years: '2024 – now', current: true }, { role: 'Instructor', org: 'School', years: '2022 – 2024' }],
+  cv: 'cv.pdf',
+};
+
+export const fullExtras = (config: ExtrasConfig): Extras => ({
+  config,
+  arsenal: [{ name: 'Unity', slug: 'unity' }, { name: 'C#', slug: 'dotnet' }, { name: 'Blender', slug: 'blender' }, { name: 'Photoshop', slug: null }, { name: 'PostgreSQL', slug: 'postgresql' }, { name: 'Docker', slug: 'docker' }],
+  spotlight: [
+    { owner: 'player-one', name: 'KeyStream', description: 'A reverse proxy & <cache> for API keys that keeps going for a long time so it wraps.', stars: 37, forks: 15, language: { name: 'JavaScript', color: '#f1e05a' }, pushedAt: '2026-02-02T00:00:00Z' },
+    { owner: 'player-one', name: 'Outline', description: '', stars: 4, forks: 1, language: null, pushedAt: '2026-02-13T00:00:00Z' },
+  ],
+  feed: [{ title: 'Unity VR in 10 minutes', url: 'https://www.youtube.com/watch?v=abc', date: '2026-09-30T12:00:00.000Z', source: 'Bill The Dev' }],
+  quote: { text: 'A ship in port is safe, but that is not what ships are built for.', author: 'Grace Hopper' },
+  events: [
+    { kind: 'level', subject: 'Level', from: '13', to: '14', at: '2026-10-05T12:00:00Z' },
+    { kind: 'overall', subject: 'Overall rank', from: 'S', to: 'SS', at: '2026-10-05T12:00:00Z' },
+    { kind: 'achievement', subject: 'night-owl', from: '1', to: '2', at: '2026-10-03T12:00:00Z' },
+  ],
 });

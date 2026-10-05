@@ -3,26 +3,58 @@ import assert from 'node:assert/strict';
 import { summarizeActivity } from '../src/application/activity.js';
 import { equipTitle, evaluateAchievements } from '../src/application/achievements.js';
 import { awakenClass } from '../src/application/classes.js';
-import { buildStat, levelFor, overallRank } from '../src/application/ranks.js';
+import { buildStat, levelFor, overallRank, rankForPercentile } from '../src/application/ranks.js';
+import { normalCdf, normalInv, percentileOf, valueAt, type Population } from '../src/application/population.js';
+import { STAT_CODES } from '../src/domain/types.js';
 import { resolveConfig } from '../src/config/config.js';
 import { calendar, rawProfile } from './fixture.js';
 
-test('stat ranks follow the thresholds, including the edges', () => {
-  assert.equal(buildStat('STR', 0).rank, 'E');
-  assert.equal(buildStat('STR', 49).rank, 'E');
-  assert.equal(buildStat('STR', 50).rank, 'D');
-  assert.equal(buildStat('STR', 1169).rank, 'A');
-  assert.deepEqual(buildStat('STR', 1169).next, { rank: 'S', at: 2500 });
-  assert.equal(buildStat('STR', 25000).rank, 'EX');
-  assert.equal(buildStat('STR', 25000).next, null);
-  assert.ok(Math.abs(buildStat('STR', 1750).progress - 0.5) < 1e-9);
+// A fixed population so these tests do not move when the sample is refreshed.
+const POP: Population = {
+  sampledAt: '2026-01-01', size: 1000,
+  stats: {
+    STR: { zero: 0.05, mu: 4, sigma: 1.5 }, AGI: { zero: 0.6, mu: 2, sigma: 1.2 }, INT: { zero: 0.8, mu: 2, sigma: 1.2 },
+    VIT: { zero: 0.1, mu: 1.5, sigma: 0.65 }, LUK: { zero: 0.8, mu: 1.8, sigma: 1.25 }, CHA: { zero: 0.6, mu: 1.6, sigma: 0.95 },
+  },
+  // Composite scores of a population whose mean z is itself standard normal.
+  composite: Array.from({ length: 201 }, (_, i) => normalInv(Math.min(0.9999, Math.max(0.0001, i / 200)))),
+};
+
+test('percentiles follow the fitted distribution and invert back to values', () => {
+  const d = POP.stats.STR;
+  assert.equal(percentileOf(0, d), 0);
+  const median = Math.expm1(d.mu);
+  assert.ok(Math.abs(percentileOf(median, d) - (d.zero + (1 - d.zero) * 0.5)) < 1e-6);
+  for (const p of [0.5, 0.9, 0.99, 0.9995]) {
+    const v = valueAt(p, d);
+    assert.ok(percentileOf(v, d) >= p - 1e-9 && percentileOf(v - 1, d) < p, `valueAt(${p}) is the smallest value reaching it`);
+  }
+  assert.ok(Math.abs(normalInv(normalCdf(1.3)) - 1.3) < 1e-4);
 });
 
-test('overall rank is the weighted mean of the six tiers, rounded down', () => {
-  const stats = (['STR', 'AGI', 'INT', 'VIT', 'LUK', 'CHA'] as const).map((code) => buildStat(code, 0));
-  assert.equal(overallRank(stats), 'E');
-  const mixed = [buildStat('STR', 1169), buildStat('AGI', 15), buildStat('INT', 1), buildStat('VIT', 41), buildStat('LUK', 93), buildStat('CHA', 16)];
-  assert.equal(overallRank(mixed), 'C');
+test('stat ranks come from the percentile ladder, with the value needed for the next rank', () => {
+  assert.equal(buildStat('STR', 0, POP).rank, 'E');
+  const b = buildStat('STR', valueAt(0.8, POP.stats.STR), POP);
+  assert.equal(b.rank, 'B');
+  assert.equal(b.next?.rank, 'A');
+  assert.ok(percentileOf(b.next!.at, POP.stats.STR) >= 0.87);
+  assert.ok(b.next!.at > b.value);
+  const ex = buildStat('STR', 10_000_000, POP);
+  assert.equal(ex.rank, 'EX');
+  assert.equal(ex.next, null);
+  assert.equal(rankForPercentile(0.399).rank, 'E');
+  assert.equal(rankForPercentile(0.4).rank, 'D');
+  assert.equal(rankForPercentile(0.9995).rank, 'EX');
+  assert.ok(Math.abs(rankForPercentile(0.675).progress - 0.5) < 1e-9);
+});
+
+test('the overall rank places the weighted mean percentile among the sampled players', () => {
+  const zeros = STAT_CODES.map((code) => buildStat(code, 0, POP));
+  assert.equal(overallRank(zeros, POP).rank, 'E');
+  const strong = STAT_CODES.map((code) => buildStat(code, valueAt(0.97, POP.stats[code]), POP));
+  const overall = overallRank(strong, POP);
+  assert.equal(overall.rank, 'S');
+  assert.ok(overall.percentile > 0.94 && overall.percentile < 0.98);
 });
 
 test('levels follow the square-root curve', () => {

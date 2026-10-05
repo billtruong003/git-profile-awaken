@@ -5,8 +5,11 @@ import { buildPlayer } from '../src/application/player.js';
 import { resolveConfig } from '../src/config/config.js';
 import { embedFonts } from '../src/infrastructure/fonts.js';
 import { fetchRawProfile } from '../src/infrastructure/githubClient.js';
+import { resolveArsenal } from '../src/application/arsenal.js';
+import { TECH_ICONS } from '../src/presentation/svg/brandIcons.js';
+import { renderBento } from '../src/presentation/layouts.js';
 import { THEMES } from '../src/presentation/theme/themes.js';
-import { renderWidgets } from '../src/presentation/widgets/index.js';
+import { extrasOf, renderWidgets } from '../src/presentation/widgets/index.js';
 
 const username = process.env.DEMO_USER ?? 'billtruong003';
 const token = process.env.GITHUB_TOKEN;
@@ -15,14 +18,19 @@ if (!token) throw new Error('Set GITHUB_TOKEN.');
 const out = 'demo';
 await mkdir(join(out, 'themes'), { recursive: true });
 
-const { config } = resolveConfig({ username, title: 'night-owl', timezone: 'Asia/Ho_Chi_Minh', icons: 'rune' });
+// The Arsenal demo lists what this profile's owner actually works with.
+const ARSENAL = ['Unity', 'C#', 'C++', 'C', 'JavaScript', 'HTML', 'CSS', 'Firebase', 'Git', 'GitHub', 'Jira', 'Confluence', 'Trello', 'Markdown', 'LaTeX', 'Blender'];
+const { config } = resolveConfig({ username, title: 'night-owl', timezone: 'Asia/Ho_Chi_Minh', icons: 'rune', arsenal: ARSENAL });
 const raw = await fetchRawProfile(username, token, { timeZone: config.timezone, commitHours: true });
 const player = buildPlayer(raw, config.title);
+player.extras = { ...extrasOf(player), config: config.extras, arsenal: resolveArsenal(ARSENAL, (slug) => slug in TECH_ICONS).items };
+const ZERO_CONFIG = ['hunter', 'status', 'ladder', 'web', 'achievements', 'activity', 'quest', 'skills', 'contribution', 'combat', 'hours', 'daily', 'oracle', 'arsenal', 'runes'] as const;
 
 const write = async (name: string, svg: string) => writeFile(join(out, name), await embedFonts(svg));
 
 for (const mode of ['dark', 'light'] as const) {
-  for (const file of renderWidgets(player, config, mode)) await write(`${file.name}-${mode}.svg`, file.svg);
+  for (const file of renderWidgets(player, config, mode, [...ZERO_CONFIG])) await write(`${file.name}-${mode}.svg`, file.svg);
+  await write(`bento-${mode}.svg`, renderBento(player, { ...config, layout: 'bento' }, mode).svg);
 }
 const raid = renderWidgets(player, { ...config, activity: 'raid' }, 'dark', ['activity'])[0]!;
 await write('raid-dark.svg', raid.svg);

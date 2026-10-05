@@ -1,6 +1,6 @@
 # User guide
 
-Git Profile Awaken draws your GitHub activity as the System window from a LitRPG: a rank from E to EX, a level, a job class, titles you earn, sixteen achievements, and your last year of contributions played as a small game. This guide covers setting it up, every option, and what to do when something looks wrong.
+Git Profile Awaken draws your GitHub activity as the System window from a LitRPG: ranks from E to EX measured against real GitHub players, a level, a job class, titles you earn, sixteen achievements, and your last year of contributions played as a small game. Pick one of ten README layouts and the Action arranges everything for you. This guide covers setting it up, every option, and what to do when something looks wrong.
 
 ## How it works
 
@@ -21,6 +21,7 @@ At the root of the profile repository:
 ```json
 {
   "username": "YOUR_USERNAME",
+  "layout": "default",
   "theme": "solo_leveling",
   "activity": "arise",
   "title": "auto",
@@ -108,7 +109,17 @@ Set `timezone` in `awaken.json` to the same zone. It decides which hour each com
 | `motion` | `full` | `full` loops the glow, pulse and flicker; `calm` plays each entrance once and stops; `none` draws still images. |
 | `timezone` | `UTC` | An IANA zone such as `Europe/Berlin` or `Asia/Tokyo`. |
 | `hours` | `true` | Read your commit times. Needed for Hunting Hours, Night Owl and Early Bird. Turn it off to make runs faster. |
-| `widgets` | all | Which widgets to draw, in README order. |
+| `layout` | `default` | How the README block is arranged. See [Layouts](#layouts). |
+| `widgets` | | Only with `"layout": "custom"`: which widgets to draw, in README order. Giving `widgets` without a layout means `custom`, as in v2. |
+| `socials` | `[]` | Up to 12 `{ "type", "url", "label" }` links for Guild Contacts. `type` is a [simple-icons](https://simpleicons.org) slug (`youtube`, `x`, `discord`, `linkedin`…) or `website`, `email`, `codepen`, `link`. |
+| `banner` | auto | `{ "lines": [...], "style": "auto" }`. Up to 6 lines of 70 characters. `style` is `typewriter`, `glitch`, `system`, or `auto` (the layout decides). Without lines the banner greets you with your class and level. |
+| `bio` | `{}` | `role`, `focus`, `location` (60 characters each) and `about` (220). |
+| `arsenal` | your languages | Up to 24 technologies for the Arsenal inventory, by name or slug (`"Unity"`, `"nextjs"`, `"PostgreSQL"`). 602 logos; anything else becomes a monogram. |
+| `spotlight` | pinned | Repositories for Repo Spotlight, `"name"` or `"owner/name"`. Empty means your pinned repositories. |
+| `feeds` | `[]` | Up to 4 RSS or Atom feeds for the Quest Board: a blog, or a YouTube channel (`https://www.youtube.com/feeds/videos.xml?channel_id=…`). |
+| `quotes` | `builtin` | The Oracle Scroll's quote of the day: `builtin`, or your own list of `{ "text", "author" }`. |
+| `career` | `[]` | Up to 6 `{ "role", "org", "years", "current" }` entries for the Career Log. |
+| `cv` | | Your résumé: a file in the profile repository (`"cv.pdf"`) or an `https://` link. Adds the CV link and a download rune. |
 | `outDir` | `awaken` | The folder for the SVGs. |
 | `readme` | `README.md` | The file whose block gets replaced. `null` leaves your README alone. |
 
@@ -116,14 +127,45 @@ Mistakes in `awaken.json` stop the run with a message that lists every problem a
 
 Viewers who turned on reduced motion in their operating system always see still images, whatever `motion` says.
 
-## Widgets
+## Layouts
 
-Full-width widgets get a row each. Half-width widgets pair up two to a row in the order you list them, and the six stat runes go four to a row.
+Set `"layout"` in `awaken.json`. Zero-config layouts work with only your username. The others draw their extra widgets once you fill in the fields they use; until then those widgets are left out, so nothing shows empty.
+
+| Layout | Needs | What it shows |
+|---|---|---|
+| `default` | nothing | Level Up (on days something changed), hunter card, rank ladder, stat web and skills, the year, quest and log, spotlight (your pinned repositories), oracle and daily quest, runes. |
+| `classic` | nothing | Hunter card, status window, quest and skills, log and combat, runes. |
+| `stats` | nothing | Status window, rank ladder, combat and hours, achievements, runes. |
+| `activity` | nothing | ARISE and Dungeon Raid, daily quest and log, hunter card. |
+| `bento` | nothing | One image on a grid: card, ladder and web, skills, quest and today, the year, log, combat and hours. |
+| `bento_compact` | nothing | One image: card, ladder and today, the year. |
+| `minimal` | `socials` | Banner, hunter card, contacts. |
+| `showcase` | `socials` | Glitch banner, the year, Level Up, spotlight, contacts. |
+| `dashboard` | `bio`, `feeds` | Banner, bio and skills, quest and log, today and your latest posts, the year. |
+| `portfolio` | `bio`, `career`, `cv`, `socials`, `arsenal` | Glitch banner, bio and career, arsenal, spotlight, contacts, CV. |
+| `custom` | `widgets` | Your own list, in order. |
+
+Full-width widgets get a line each, half-width ones pair up, runes and contacts go four to a line. Spotlight cards, contacts and the CV are links. The Bento layouts are one SVG: spacing is exact on every screen, but the whole block is one link.
+
+## Widgets
 
 | Id | Width | Shows |
 |---|---|---|
-| `hunter` | full | Hunter rank, level, class, equipped title, the six stats. |
-| `status` | full | Level, EXP and MP bars, the six stats with progress to the next rank, and a radar. |
+| `hunter` | full | Hunter rank with your top share, level, class, equipped title, the six stats. |
+| `status` | full | Level, overall rank and top share, the rank ladder, the six stats with the value for the next rank, and the stat web. |
+| `ladder` | full | E to EX on a log scale of the top share, with you and each stat marked. |
+| `web` | half | The six stats as a web on the percentile scale, with rings where A, S, SSS and EX begin. |
+| `levelup` | full | What changed since the last run: level, ranks, achievement tiers. Only on days something changed. |
+| `banner` | full | A typewriter, glitch or system banner. |
+| `contacts` | rune | One linked card per entry in `socials`. |
+| `arsenal` | full | Equipped: your top languages. Inventory: your `arsenal`, on shelves by kind. |
+| `spotlight` | half | One linked card per spotlight repository (up to 4). |
+| `bio` | half | Role, focus, base, class and a short about. |
+| `career` | half | Your career log, with the CV link. |
+| `cv` | rune | A linked download rune for your résumé. |
+| `board` | half | The latest posts from your feeds. |
+| `oracle` | half | A quote of the day. |
+| `arise`, `raid` | full | One activity style regardless of `activity` (the Activity layout shows both). |
 | `achievements` | full | Your equipped title and all sixteen achievements with their tiers. |
 | `activity` | full | Your last year as ARISE or Dungeon Raid. |
 | `quest` | half | Your most recently pushed repository as the active quest. |
@@ -136,6 +178,15 @@ Full-width widgets get a row each. Half-width widgets pair up two to a row in th
 
 ## Stats, ranks and level
 
+Ranks are percentiles. We sampled 1,080 regular GitHub players at random (accounts with 10 or more contributions in the past year, out of 5,484 active ones) and fitted each stat. Your rank says where you stand among them, and the widgets show it as a top share: `TOP 2.0%` means 2% of regular players have more.
+
+| Rank | E | D | C | B | A | S | SS | SSS | EX |
+|---|---|---|---|---|---|---|---|---|---|
+| From the top | | 60% | 40% | 25% | 13% | 6% | 2% | 0.5% | 0.05% |
+
+Ranks from A up carry effects that grow with the tier: A glows, S pulses, SS shimmers, SSS burns, EX adds a prism and sparks. The rank ladder carries the same effects on each segment.
+
+
 | Stat | Counts |
 |---|---|
 | STR | Commits, every year since you joined |
@@ -145,7 +196,7 @@ Full-width widgets get a row each. Half-width widgets pair up two to a row in th
 | LUK | Stars on your repositories |
 | CHA | Followers |
 
-Each stat has a rank: E, D, C, B, A, S, SS, SSS, EX. Under each stat a thin bar shows how far you are toward the next rank. Your overall rank is the weighted average of the six (STR counts double, AGI and LUK one and a half times).
+Under each stat a thin bar shows how far you are through the rank, and the value that reaches the next one. Your overall rank ranks your combined score among the same players: each stat's percentile becomes a z-score, weighted (STR counts double, AGI and LUK one and a half times), and the mean is placed among the sampled players. Someone far ahead on one stat is not capped at the top of the ladder.
 
 Your level comes from EXP, which every kind of contribution adds to: commits, pull requests (more if they were merged into someone else's project), reviews, issues, active repositories, stars and followers. Each level needs a little more EXP than the one before.
 
@@ -190,7 +241,13 @@ Today never breaks your streak while it is still going on; the streak only reset
 
 ## Themes
 
-`solo_leveling` (the default), `shadow_monarch`, `red_gate`, `frost_elf`, `demon_castle`, `hunter_association`, `daylight`, `cyberpunk`, `dracula`, `tokyonight`, `monokai`, `gruvbox`, `nord`, `synthwave`, `matrix`, `hollow_knight`, `genshin_anemo`, `genshin_geo`, `genshin_electro`, `elden_ring`, `nier`, `bloodborne`, `valorant`, `hextech`, `retrowave`, `abyssal`, `infernal`.
+**System:** `solo_leveling` (the default), `shadow_monarch`, `red_gate`, `frost_elf`, `demon_castle`, `hunter_association`, `daylight`.
+
+**Cultivation (Tu Tiên):** `jade_sect`, `crimson_sect`, `celestial_gold`, `ink_wash` (light in both modes).
+
+**Editor:** `cyberpunk`, `dracula`, `tokyonight`, `monokai`, `gruvbox`, `nord`, `synthwave`, `matrix`.
+
+**Games:** `hollow_knight`, `genshin_anemo`, `genshin_geo`, `genshin_electro`, `elden_ring`, `nier`, `bloodborne`, `valorant`, `hextech`, `retrowave`, `abyssal`, `infernal`.
 
 Themes change the panels, text, frame and accent colors. Rank colors stay the same in every theme, so an S is always gold. Some themes come with their own light version; the rest use their dark version in both modes.
 
@@ -208,7 +265,7 @@ The workflow's built-in token can read your public activity. To count private re
        token: ${{ secrets.AWAKEN_TOKEN }}
    ```
 
-Your private repository names are never drawn on the widgets, but the active quest uses your most recently pushed repository; if that one is private and you do not want its name shown, leave `quest` out of `widgets`.
+Your private repository names are never drawn on the widgets, but the active quest uses your most recently pushed repository; if that one is private and you do not want its name shown, use `"layout": "custom"` and leave `quest` out of `widgets`.
 
 ## Hosted endpoint
 
@@ -221,7 +278,8 @@ Each widget is also available as an image URL:
 | Parameter | Values |
 |---|---|
 | `username` | Required. |
-| `widget` | Any widget id, or `rune-str` … `rune-cha`. Old links with `widget=stat&target=STR` and `widget=skill` still work. |
+| `widget` | Any widget id, `bento`, or `rune-str` … `rune-cha`. Old links with `widget=stat&target=STR` and `widget=skill` still work. Widgets that draw `awaken.json` data or run history (`levelup`, `spotlight`, `contacts`, `bio`, `career`, `cv`, `board`) need the Action. |
+| `layout` | With `widget=bento`: `bento` (default) or `bento_compact`. |
 | `theme` | Any theme id. |
 | `mode` | `dark` (default) or `light`. |
 | `activity`, `icons`, `motion`, `title`, `timezone` | As in `awaken.json`. |
@@ -241,3 +299,7 @@ The server keeps every profile it has drawn and refreshes it each night, so afte
 **Hunting Hours says commit hours are off.** Set `"hours": true`.
 
 **The run says my `awaken.json` has problems.** The message lists each field and the values it accepts.
+
+**A widget from my layout is missing.** It needs data you have not given yet (for example `socials` for contacts, `feeds` for the Quest Board), or, for Level Up, nothing changed since the last run. The run log lists the files it wrote.
+
+**An Arsenal item shows two letters instead of a logo.** There is no logo for it in the catalog (several brands ask icon sets to remove theirs). The run log names those items.

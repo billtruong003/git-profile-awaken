@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { join, normalize } from 'node:path';
-import { WIDGET_IDS, type WidgetId } from '../../domain/types.js';
+import { LAYOUT_IDS, WIDGET_IDS, type WidgetId } from '../../domain/types.js';
 import { buildPlayer } from '../../application/player.js';
 import { resolveConfig, type FileConfig } from '../../config/config.js';
 import { embedFonts } from '../../infrastructure/fonts.js';
@@ -10,12 +10,15 @@ import { rawProfileFor, refreshDuePlayers } from '../../infrastructure/players.j
 import { isValidGithubUsername } from '../../infrastructure/sanitizer.js';
 import { createStore } from '../../infrastructure/store.js';
 import { buildErrorSvg } from '../svg/errorSvg.js';
-import { THEME_IDS } from '../theme/themes.js';
+import { THEME_IDS, THEME_PACKS } from '../theme/themes.js';
 import { docsPage, isDocPath } from '../web/docs.js';
 import { homePage } from '../web/home.js';
+import { renderBento } from '../layouts.js';
 import { renderWidgets } from '../widgets/index.js';
 
 const store = createStore();
+/** Widgets that draw awaken.json data or run history, which the public server does not have. */
+const ACTION_ONLY = new Set<string>(['levelup', 'spotlight', 'contacts', 'bio', 'career', 'cv', 'board']);
 const CRON_BUDGET_MS = 50_000;
 
 const send = (res: ServerResponse, status: number, type: string, body: string | Buffer, maxAge: number) => {
@@ -27,8 +30,18 @@ const send = (res: ServerResponse, status: number, type: string, body: string | 
   res.end(body);
 };
 
-const sendError = (res: ServerResponse, status: number, title: string, detail: string) =>
-  send(res, 200, 'image/svg+xml; charset=utf-8', buildErrorSvg(status, title, detail), 60);
+/**
+ * Error images must never be cached: GitHub's image proxy would keep showing a transient failure (a cold
+ * timeout, a deploy in progress) long after it is fixed. `no-cache` makes the proxy revalidate every time.
+ */
+const sendError = (res: ServerResponse, status: number, title: string, detail: string) => {
+  res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+  res.setHeader('CDN-Cache-Control', 'no-store');
+  res.writeHead(200);
+  res.end(buildErrorSvg(status, title, detail));
+};
 
 /** v1 URLs (widget=stat&target=STR, widget=skill) keep working in READMEs that still use them. */
 export const legacyWidget = (widget: string, target: string | null): string => {
@@ -47,19 +60,22 @@ const handleApi = async (res: ServerResponse, url: URL): Promise<void> => {
 
   const widgetParam = legacyWidget(q.get('widget') ?? 'status', q.get('target'));
   const rune = /^rune-(str|agi|int|vit|luk|cha)$/.exec(widgetParam);
-  const widget = (rune ? 'runes' : widgetParam) as WidgetId;
-  if (!(WIDGET_IDS as readonly string[]).includes(widget)) return sendError(res, 400, 'Unknown widget', `Use one of: ${WIDGET_IDS.join(', ')}, rune-str…rune-cha.`);
+  const widget = (rune ? 'runes' : widgetParam) as WidgetId | 'bento';
+  if (widget !== 'bento' && !(WIDGET_IDS as readonly string[]).includes(widget)) return sendError(res, 400, 'Unknown widget', `Use one of: ${WIDGET_IDS.join(', ')}, bento, rune-str…rune-cha.`);
 
   const options = Object.fromEntries(
     ['theme', 'title', 'activity', 'icons', 'motion', 'timezone'].flatMap((k) => (q.get(k) ? [[k, q.get(k)]] : [])),
   ) as FileConfig;
-  const { config } = resolveConfig({ ...options, username });
+  const layout = q.get('layout') === 'bento_compact' ? 'bento_compact' : 'bento';
+  const { config } = resolveConfig({ ...options, username, layout });
   const mode = q.get('mode') === 'light' ? 'light' : 'dark';
 
   try {
     const player = buildPlayer(await rawProfileFor(username, token, store), config.title);
+    if (widget === 'bento') return send(res, 200, 'image/svg+xml; charset=utf-8', await embedFonts(renderBento(player, config, mode).svg), 1800);
     const files = renderWidgets(player, config, mode, [widget]);
     const file = rune ? files.find((f) => f.name === widgetParam) : files[0];
+    if (!file && ACTION_ONLY.has(widget)) return sendError(res, 400, 'Needs the GitHub Action', `"${widget}" draws what you put in awaken.json or what changed since the last run. Add it through the Action.`);
     if (!file) return sendError(res, 400, 'Unknown widget', widgetParam);
     send(res, 200, 'image/svg+xml; charset=utf-8', await embedFonts(file.svg), 1800);
   } catch (err) {
@@ -103,6 +119,7 @@ export const handleRequest = async (req: IncomingMessage, res: ServerResponse): 
   if (path === '/api') return handleApi(res, url);
   if (path === '/api/cron/refresh') return handleCron(req, res);
   if (path === '/health') return send(res, 200, 'application/json', JSON.stringify({ status: 'operational', themes: THEME_IDS.length, sharedCache: store.persistent }), 0);
-  if (path === '/themes') return send(res, 200, 'application/json', JSON.stringify({ themes: THEME_IDS }), 3600);
+  if (path === '/themes') return send(res, 200, 'application/json', JSON.stringify({ themes: THEME_IDS, packs: THEME_PACKS }), 3600);
+  if (path === '/layouts') return send(res, 200, 'application/json', JSON.stringify({ layouts: LAYOUT_IDS }), 3600);
   send(res, 404, 'text/html; charset=utf-8', '<!doctype html><title>Not found</title><p style="font-family:system-ui;padding:40px">Nothing here. <a href="/">Back to the System</a>.</p>', 60);
 };

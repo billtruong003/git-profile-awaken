@@ -4,12 +4,18 @@
 
 **[ SYSTEM NOTIFICATION ] You have been chosen as a Player.**
 
-Your GitHub profile, rendered as the System window from a LitRPG: ranks from E to EX, a job class, titles you earn, achievements, and a year of contributions that rises as a shadow army. A GitHub Action rebuilds it every day.
+Your GitHub profile, rendered as the System window from a LitRPG: ranks from E to EX measured against real GitHub players, a job class, titles you earn, achievements, and a year of contributions that rises as a shadow army. Ten README layouts, 31 themes, 602 logos for your arsenal. A GitHub Action rebuilds it every night.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="demo/hunter-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="demo/hunter-light.svg">
-  <img src="demo/hunter-dark.svg" width="100%" alt="Hunter license: rank C, level 14, Holy Knight, title Night Owl">
+  <img src="demo/hunter-dark.svg" width="100%" alt="Hunter license of billtruong003">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="demo/ladder-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="demo/ladder-light.svg">
+  <img src="demo/ladder-dark.svg" width="100%" alt="Rank ladder: where billtruong003 stands among regular GitHub players">
 </picture>
 
 <picture>
@@ -54,6 +60,7 @@ You need a profile repository (the repository named after your username, the one
    ```json
    {
      "username": "YOUR_USERNAME",
+     "layout": "default",
      "theme": "solo_leveling",
      "activity": "arise",
      "timezone": "Asia/Ho_Chi_Minh"
@@ -104,16 +111,39 @@ A full working profile is in [`examples/profile`](examples/profile).
 | `motion` | `full` | `full` loops glow, pulse and flicker; `calm` plays each entrance once; `none` draws a still image. Viewers with reduced motion always get the still image. |
 | `timezone` | `UTC` | IANA zone used for commit hours, the daily quest and dates. |
 | `hours` | `true` | Fetch commit times for the Hunting Hours clock and the hour-based achievements. |
-| `widgets` | all | Which widgets to build, in README order. Half-width widgets pair up; runes go four to a row. |
+| `layout` | `default` | How the README is arranged: one of the [layouts](#layouts). |
+| `widgets` | | With `"layout": "custom"`: which widgets to build, in README order. |
+| `socials`, `banner`, `bio`, `arsenal`, `spotlight`, `feeds`, `quotes`, `career`, `cv` | | Profile extras for contacts, banner, bio, arsenal, repo spotlight, quest board, oracle, career log and CV. See the [user guide](docs/guide.md#configuration-reference). |
 | `outDir` | `awaken` | Where the SVGs go. |
 | `readme` | `README.md` | The file whose block gets replaced, or `null` to leave READMEs alone. |
 
 The default token reads public activity. To include private contributions, create a fine-grained token with read-only access, save it as the `AWAKEN_TOKEN` secret, and pass `token: ${{ secrets.AWAKEN_TOKEN }}` to the step.
 
+## Layouts
+
+One line in `awaken.json` arranges your whole README. Zero-config layouts need only your username; the others add widgets as you fill in their fields.
+
+| Layout | Needs | Shows |
+|---|---|---|
+| `default` | nothing | Level Up, hunter card, rank ladder, stat web, skills, the year, quest, log, spotlight, oracle, daily quest, runes |
+| `classic` | nothing | Hunter card, status window, quest, skills, log, combat, runes |
+| `stats` | nothing | Status window, ladder, combat, hours, achievements, runes |
+| `activity` | nothing | ARISE and Dungeon Raid, daily quest, log, hunter card |
+| `bento` | nothing | One image on a grid with ten tiles |
+| `bento_compact` | nothing | One image: card, ladder, today, the year |
+| `minimal` | socials | Banner, hunter card, contacts |
+| `showcase` | socials | Glitch banner, the year, Level Up, spotlight, contacts |
+| `dashboard` | bio, feeds | Banner, bio, skills, quest, log, daily quest, quest board, the year |
+| `portfolio` | bio, career, cv, socials, arsenal | Glitch banner, bio, career log, arsenal, spotlight, contacts, CV |
+
+<img src="demo/bento-dark.svg" width="100%" alt="The Bento layout">
+
 ## Widgets
 
 <table>
 <tr><td colspan="2"><img src="demo/status-dark.svg" width="100%" alt="Status window"></td></tr>
+<tr><td colspan="2"><img src="demo/arsenal-dark.svg" width="100%" alt="Arsenal"></td></tr>
+<tr><td><img src="demo/web-dark.svg" alt="Stat web"></td><td><img src="demo/oracle-dark.svg" alt="Oracle scroll"></td></tr>
 <tr><td colspan="2"><img src="demo/achievements-dark.svg" width="100%" alt="Achievements"></td></tr>
 <tr><td><img src="demo/quest-dark.svg" alt="Active quest"></td><td><img src="demo/skills-dark.svg" alt="Passive skills"></td></tr>
 <tr><td><img src="demo/contribution-dark.svg" alt="Contribution log"></td><td><img src="demo/combat-dark.svg" alt="Combat record"></td></tr>
@@ -122,8 +152,17 @@ The default token reads public activity. To include private contributions, creat
 
 | Id | Size | Shows |
 |---|---|---|
-| `hunter` | full | Rank, level, class, equipped title, the six stats. |
-| `status` | full | Level, EXP and MP, the six stats with progress to the next rank, radar. |
+| `hunter` | full | Rank and top share, level, class, equipped title, the six stats. |
+| `status` | full | Level, overall rank and top share, rank ladder, the six stats with the value for the next rank, stat web. |
+| `ladder` | full | E to EX on a log scale, with you and each stat marked. |
+| `web` | half | The six stats on the percentile scale. |
+| `levelup` | full | What changed since the last run. Only on days something changed. |
+| `banner` | full | Typewriter, glitch or system banner. |
+| `arsenal` | full | Your top languages equipped, your tools on shelves by kind. |
+| `spotlight` | half | Linked cards for your pinned (or chosen) repositories. |
+| `contacts` | rune | Linked cards for your socials. |
+| `bio`, `career`, `board`, `oracle` | half | Character bio, career log, latest posts from your feeds, quote of the day. |
+| `cv` | rune | A linked download rune for your résumé. |
 | `achievements` | full | Equipped title and sixteen achievements with three tiers each. |
 | `activity` | full | The last year as a game: ARISE or Dungeon Raid. |
 | `quest` | half | Your most recently pushed repository as the active quest. |
@@ -136,16 +175,22 @@ The default token reads public activity. To include private contributions, creat
 
 ## Stats and ranks
 
-| Stat | Source | Rank D from | A from | EX from |
-|---|---|---|---|---|
-| STR | Commits, all years | 50 | 1,000 | 25,000 |
-| AGI | Pull requests | 5 | 100 | 2,500 |
-| INT | Issues opened | 5 | 100 | 2,000 |
-| VIT | Repositories with commits in the last year | 3 | 20 | 150 |
-| LUK | Stars on your repositories | 10 | 500 | 100,000 |
-| CHA | Followers | 10 | 500 | 100,000 |
+| Stat | Source |
+|---|---|
+| STR | Commits, all years |
+| AGI | Pull requests |
+| INT | Issues opened |
+| VIT | Repositories with commits in the last year |
+| LUK | Stars on your repositories |
+| CHA | Followers |
 
-Ranks run E, D, C, B, A, S, SS, SSS, EX. The overall rank is the weighted mean of the six (STR counts double, AGI and LUK one and a half). The thresholds live in [`src/application/ranks.ts`](src/application/ranks.ts) and are provisional until there is enough data for a percentile model.
+Ranks are percentiles among regular GitHub players: 1,080 accounts with 10 or more contributions in the past year, sampled at random from 5,484 active ones, each stat fitted as a zero-inflated log-normal.
+
+| Rank | E | D | C | B | A | S | SS | SSS | EX |
+|---|---|---|---|---|---|---|---|---|---|
+| From the top | | 60% | 40% | 25% | 13% | 6% | 2% | 0.5% | 0.05% |
+
+The overall rank places your weighted mean z-score (STR counts double, AGI and LUK one and a half) among the same players, so a player far ahead is not capped. From A up, ranks glow, pulse, shimmer, burn and spark. The sampler and the fit are in [`scripts/`](scripts); the fitted model is [`src/application/populationData.ts`](src/application/populationData.ts).
 
 Commits are counted year by year from the contribution calendar, so forks and mirrored history are not counted many times over.
 
@@ -197,6 +242,8 @@ Every theme is checked by the test suite against the same contrast rules (body t
 </tr>
 </table>
 
+New, the Cultivation pack: `jade_sect`, `crimson_sect`, `celestial_gold`, `ink_wash`.
+
 Also: `daylight`, `cyberpunk`, `dracula`, `tokyonight`, `monokai`, `gruvbox`, `nord`, `synthwave`, `matrix`, `hollow_knight`, `genshin_anemo`, `genshin_geo`, `genshin_electro`, `elden_ring`, `nier`, `bloodborne`, `valorant`, `hextech`, `retrowave`, `abyssal`, `infernal`. Previews of all of them are in [`demo/themes`](demo/themes).
 
 ## Hosted endpoint
@@ -207,7 +254,7 @@ If you would rather not run an Action, the endpoint renders single widgets on re
 ![Status](https://git-profile-awaken.vercel.app/api?username=YOUR_USERNAME&widget=status&theme=solo_leveling)
 ```
 
-Parameters: `username`, `widget` (any id above, or `rune-str` … `rune-cha`), `theme`, `mode` (`dark` or `light`), `activity`, `icons`, `motion`, `title`, `timezone`.
+Parameters: `username`, `widget` (any id above, `bento`, or `rune-str` … `rune-cha`), `layout` (with `bento`: `bento` or `bento_compact`), `theme`, `mode` (`dark` or `light`), `activity`, `icons`, `motion`, `title`, `timezone`. Widgets that draw your `awaken.json` data or run history need the Action.
 
 To host your own, import the repository into Vercel and set `GITHUB_TOKEN`.
 
@@ -229,6 +276,6 @@ To add a theme, add six seed colors to [`themes.ts`](src/presentation/theme/them
 
 ## Credits
 
-Fonts: [Chakra Petch](https://fonts.google.com/specimen/Chakra+Petch) and [JetBrains Mono](https://www.jetbrains.com/lp/mono/), both under the SIL Open Font License, embedded as subsets. Language logos come from [Simple Icons](https://simpleicons.org) (CC0); the logos are trademarks of their owners. Inspired by the System in *Solo Leveling*; this project is not affiliated with it.
+Fonts: [Chakra Petch](https://fonts.google.com/specimen/Chakra+Petch) and [JetBrains Mono](https://www.jetbrains.com/lp/mono/), both under the SIL Open Font License, embedded as subsets. Language, tool and social logos come from [Simple Icons](https://simpleicons.org) (CC0); the logos are trademarks of their owners. Inspired by the System in *Solo Leveling*; this project is not affiliated with it.
 
 MIT © [BillTheDev](https://github.com/billtruong003)

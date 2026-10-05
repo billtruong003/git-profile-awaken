@@ -11,7 +11,9 @@
     "test": "tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit",
     "vendor:icons": "node scripts/vendor-brand-icons.mjs",
-    "demo": "tsx scripts/demo.ts"
+    "demo": "tsx scripts/demo.ts",
+    "sample-population": "tsx scripts/sample-population.ts",
+    "fit-population": "tsx scripts/fit-population.ts"
   },
   "type": "module",
   "license": "MIT",

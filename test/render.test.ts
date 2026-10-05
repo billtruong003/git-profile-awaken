@@ -6,8 +6,10 @@ import { buildBlock, END, injectBlock, START } from '../src/cli/readme.js';
 import { embedFonts } from '../src/infrastructure/fonts.js';
 import { contrast } from '../src/presentation/theme/color.js';
 import { THEMES } from '../src/presentation/theme/themes.js';
+import { LAYOUT_IDS, WIDGET_IDS, type LayoutId } from '../src/domain/types.js';
+import { LAYOUTS, pairRows, renderBento, renderLayout } from '../src/presentation/layouts.js';
 import { renderWidgets } from '../src/presentation/widgets/index.js';
-import { calendar, rawProfile } from './fixture.js';
+import { calendar, fullConfig, fullExtras, rawProfile } from './fixture.js';
 
 test('every theme meets the Awaken System contrast rules in both modes', () => {
   for (const theme of THEMES) {
@@ -42,10 +44,13 @@ test('every widget renders for every theme, mode, motion and activity', () => {
   for (const theme of THEMES) {
     for (const motion of ['full', 'calm', 'none'] as const) {
       for (const activity of ['arise', 'raid'] as const) {
-        const { config } = resolveConfig({ username: 'player-one', theme: theme.id, motion, activity, icons: motion === 'calm' ? 'brand' : 'rune' });
+        const { config } = resolveConfig({ ...fullConfig, theme: theme.id, motion, activity, icons: motion === 'calm' ? 'brand' : 'rune' });
         const player = buildPlayer(raw, config.title);
+        player.extras = fullExtras(config.extras);
         for (const mode of ['dark', 'light'] as const) {
-          for (const file of renderWidgets(player, config, mode)) wellFormed(file.svg, `${theme.id}/${mode}/${motion}/${activity}/${file.name}`);
+          const files = renderWidgets(player, config, mode, [...WIDGET_IDS]);
+          for (const file of files) wellFormed(file.svg, `${theme.id}/${mode}/${motion}/${activity}/${file.name}`);
+          assert.ok(new Set(files.map((f) => f.widget)).size === WIDGET_IDS.length, `${theme.id}/${motion}: every widget drew`);
         }
       }
     }
@@ -78,7 +83,7 @@ test('fonts are embedded and cut down to the glyphs in use', async () => {
 test('the README block pairs half widgets and replaces itself in place', () => {
   const { config } = resolveConfig({ username: 'player-one' });
   const files = renderWidgets(buildPlayer(rawProfile(), 'auto'), config, 'dark');
-  const block = buildBlock(files, 'awaken', true, (f) => f.name);
+  const block = buildBlock(pairRows(files), 'awaken', true, (f) => f.name);
   assert.match(block, /quest-dark\.svg[^]*?width="49%"[^]*?skills-dark\.svg/);
   assert.equal((block.match(/width="24%"/g) ?? []).length, 6);
   const first = injectBlock('# Me\n', block);
@@ -87,4 +92,56 @@ test('the README block pairs half widgets and replaces itself in place', () => {
   assert.equal(second.appended, false);
   assert.equal(second.text.split(START).length, 2);
   assert.equal(second.text.split(END).length, 2);
+});
+
+test('every banner style renders, and auto follows the layout', () => {
+  for (const style of ['typewriter', 'glitch', 'system'] as const) {
+    for (const motion of ['full', 'calm', 'none'] as const) {
+      const { config } = resolveConfig({ ...fullConfig, banner: { lines: fullConfig.banner.lines, style }, motion });
+      const player = buildPlayer(rawProfile(), 'auto');
+      player.extras = fullExtras(config.extras);
+      wellFormed(renderWidgets(player, config, 'dark', ['banner'])[0]!.svg, `banner ${style} ${motion}`);
+    }
+  }
+  const { config } = resolveConfig({ ...fullConfig, layout: 'showcase' });
+  const player = buildPlayer(rawProfile(), 'auto');
+  player.extras = fullExtras(config.extras);
+  assert.match(renderLayout(player, config, 'dark')[0]![0]!.svg, /\[ PLAYER \]/);
+});
+
+test('zero-config layouts draw with only a username and skip what needs history or extras', () => {
+  const player = buildPlayer(rawProfile(), 'auto');
+  for (const id of LAYOUT_IDS) {
+    const { config, problems } = resolveConfig({ username: 'player-one', layout: id });
+    assert.deepEqual(problems, []);
+    const rows = renderLayout(player, config, 'dark');
+    for (const file of rows.flat()) wellFormed(file.svg, `${id}/${file.name}`);
+    if (id in LAYOUTS && LAYOUTS[id as keyof typeof LAYOUTS].zeroConfig) assert.ok(rows.length >= 4, `${id} has rows`);
+  }
+  const names = renderLayout(player, resolveConfig({ username: 'player-one' }).config, 'dark').flat().map((f) => f.name);
+  assert.equal(names[0], 'hunter', 'no Level Up without an earlier run');
+  assert.ok(!names.some((n) => n.startsWith('spotlight')), 'no spotlight without pinned repositories');
+  assert.ok(names.includes('web') && names.includes('ladder') && names.includes('oracle'));
+});
+
+test('the Bento layout is one image with unique ids and every tile inside it', () => {
+  const player = buildPlayer(rawProfile(), 'auto');
+  for (const layout of ['bento', 'bento_compact'] as LayoutId[]) {
+    const { config } = resolveConfig({ username: 'player-one', layout });
+    const bento = renderBento(player, config, 'dark');
+    wellFormed(bento.svg, layout);
+    const ids = bento.svg.match(/ id="[^"]+"/g) ?? [];
+    assert.equal(new Set(ids).size, ids.length, `${layout}: duplicate ids`);
+    assert.ok(bento.height > 400 && bento.width === 840);
+  }
+});
+
+test('linked widgets are wrapped in links in the README', () => {
+  const { config } = resolveConfig({ ...fullConfig, layout: 'portfolio' });
+  const player = buildPlayer(rawProfile(), 'auto');
+  player.extras = fullExtras(config.extras);
+  const block = buildBlock(renderLayout(player, config, 'dark'), 'awaken', false, (f) => f.name);
+  assert.match(block, /<a href="https:\/\/github.com\/player-one\/KeyStream"><img src="awaken\/spotlight-1-dark.svg"/);
+  assert.match(block, /<a href="cv.pdf">/);
+  assert.match(block, /<a href="mailto:me@example.com">/);
 });

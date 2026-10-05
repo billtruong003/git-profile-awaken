@@ -1,17 +1,6 @@
 import { GRADES, type RankGrade, type Stat, type StatCode } from '../domain/types.js';
-
-/**
- * Provisional thresholds: the value needed to enter D, C, B, A, S, SS, SSS and EX.
- * They stand in for a percentile model until enough profiles have been sampled.
- */
-export const THRESHOLDS: Record<StatCode, readonly number[]> = {
-  STR: [50, 200, 500, 1000, 2500, 5000, 10000, 25000],
-  AGI: [5, 20, 50, 100, 250, 500, 1000, 2500],
-  INT: [5, 15, 40, 100, 250, 500, 1000, 2000],
-  VIT: [3, 6, 10, 20, 35, 60, 100, 150],
-  LUK: [10, 50, 200, 500, 1000, 5000, 20000, 100000],
-  CHA: [10, 50, 150, 500, 1000, 5000, 20000, 100000],
-};
+import { compositePercentile, compositeScore, LADDER, percentileOf, valueAt, type Population } from './population.js';
+import { POPULATION } from './populationData.js';
 
 export const SOURCES: Record<StatCode, string> = {
   STR: 'Commits',
@@ -22,37 +11,36 @@ export const SOURCES: Record<StatCode, string> = {
   CHA: 'Followers',
 };
 
-const WEIGHTS: Record<StatCode, number> = { STR: 2, AGI: 1.5, INT: 1, VIT: 1, LUK: 1.5, CHA: 1 };
-
 export const gradeIndex = (rank: RankGrade): number => GRADES.indexOf(rank);
 
-export const buildStat = (code: StatCode, value: number): Stat => {
-  const steps = THRESHOLDS[code];
-  const index = steps.findIndex((at) => value < at);
-  if (index === -1) {
-    return { code, source: SOURCES[code], value, rank: 'EX', progress: 1, next: null };
-  }
-  const floor = index === 0 ? 0 : steps[index - 1]!;
-  const ceiling = steps[index]!;
-  return {
-    code,
-    source: SOURCES[code],
-    value,
-    rank: GRADES[index]!,
-    progress: Math.min(1, Math.max(0, (value - floor) / (ceiling - floor))),
-    next: { rank: GRADES[index + 1]!, at: ceiling },
-  };
+/** The rank for a percentile, and how far it is through that rank (0–1). */
+export const rankForPercentile = (p: number): { rank: RankGrade; progress: number; index: number } => {
+  const index = LADDER.findIndex((bound) => p < bound);
+  if (index === -1) return { rank: 'EX', progress: 1, index: GRADES.length - 1 };
+  const lower = index === 0 ? 0 : LADDER[index - 1]!;
+  return { rank: GRADES[index]!, progress: Math.min(1, Math.max(0, (p - lower) / (LADDER[index]! - lower))), index };
 };
 
-/** Weighted mean of the six tiers, rounded down. */
-export const overallRank = (stats: Stat[]): RankGrade => {
-  let sum = 0;
-  let weight = 0;
-  for (const stat of stats) {
-    sum += gradeIndex(stat.rank) * WEIGHTS[stat.code];
-    weight += WEIGHTS[stat.code];
-  }
-  return GRADES[Math.floor(sum / weight)] ?? 'E';
+/**
+ * A stat's rank is where the player stands among regular GitHub players (10+ contributions in the past
+ * year): E below the 40th percentile up to EX in the top 0.05%. `next.at` is the value that reaches the
+ * next rank.
+ */
+export const buildStat = (code: StatCode, value: number, population: Population = POPULATION): Stat => {
+  const distribution = population.stats[code];
+  const percentile = percentileOf(value, distribution);
+  const { rank, progress, index } = rankForPercentile(percentile);
+  const next = rank === 'EX'
+    ? null
+    : { rank: GRADES[index + 1]!, at: Math.max(value + 1, valueAt(LADDER[index]!, distribution)) };
+  return { code, source: SOURCES[code], value, rank, progress, next, percentile };
+};
+
+/** The overall rank ranks the weighted mean of the six percentiles against the same players. */
+export const overallRank = (stats: Stat[], population: Population = POPULATION): { rank: RankGrade; percentile: number } => {
+  const score = compositeScore(Object.fromEntries(stats.map((s) => [s.code, s.percentile])) as Record<StatCode, number>);
+  const percentile = compositePercentile(score, population.composite);
+  return { rank: rankForPercentile(percentile).rank, percentile };
 };
 
 /** EXP grows with every kind of contribution; levels follow a square-root curve. */
