@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { join, normalize } from 'node:path';
-import { LAYOUT_IDS, WIDGET_IDS, type WidgetId } from '../../domain/types.js';
+import { LAYOUT_IDS, WIDGET_IDS, type Player, type WidgetId } from '../../domain/types.js';
 import { buildPlayer } from '../../application/player.js';
 import { resolveConfig, type FileConfig } from '../../config/config.js';
 import { embedFonts } from '../../infrastructure/fonts.js';
@@ -98,6 +98,40 @@ const handleApi = async (res: ServerResponse, url: URL): Promise<void> => {
   }
 };
 
+/**
+ * The player as JSON, for bots and other apps that draw their own card: stats with ranks and percentiles,
+ * the overall rank, level and class. Same cache and rules as the images.
+ */
+export const hunterJson = (p: Player) => ({
+  login: p.raw.login,
+  name: p.raw.name,
+  level: p.level,
+  exp: p.exp,
+  nextExp: p.nextExp,
+  overall: { rank: p.overall, percentile: p.overallPercentile },
+  class: p.jobClass,
+  title: p.equippedTitle?.title ?? null,
+  stats: p.stats.map(({ code, source, value, rank, percentile, progress }) => ({ code, source, value, rank, percentile, progress })),
+  topLanguages: p.raw.languages.slice(0, 5).map(({ name, percent }) => ({ name, percent })),
+  syncedAt: p.raw.fetchedAt,
+});
+
+const handleHunter = async (res: ServerResponse, url: URL): Promise<void> => {
+  const token = process.env.GITHUB_TOKEN;
+  const username = url.searchParams.get('username') ?? '';
+  const fail = (status: number, error: string) => send(res, status, 'application/json', JSON.stringify({ error }), 0);
+  if (!token) return fail(500, 'GITHUB_TOKEN is not set on this server.');
+  if (!isValidGithubUsername(username)) return fail(400, 'Pass ?username= with a GitHub username.');
+  try {
+    const player = buildPlayer(await rawProfileFor(username, token, store), 'auto');
+    send(res, 200, 'application/json', JSON.stringify(hunterJson(player)), 1800);
+  } catch (err) {
+    if (err instanceof GithubError) return fail(err.code === 'not_found' ? 404 : 502, err.message);
+    console.error(err);
+    fail(500, 'Something failed while reading this player.');
+  }
+};
+
 /** Nightly: Vercel Cron calls this with the CRON_SECRET bearer token. */
 const handleCron = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
   const secret = process.env.CRON_SECRET;
@@ -127,6 +161,7 @@ export const handleRequest = async (req: IncomingMessage, res: ServerResponse): 
   if (isDocPath(path)) return send(res, 200, 'text/html; charset=utf-8', await docsPage(path), 600);
   if (path.startsWith('/demo/')) return handleDemo(res, path);
   if (path === '/api') return handleApi(res, url);
+  if (path === '/api/hunter') return handleHunter(res, url);
   if (path === '/api/cron/refresh') return handleCron(req, res);
   if (path === '/health') return send(res, 200, 'application/json', JSON.stringify({ status: 'operational', themes: THEME_IDS.length, sharedCache: store.persistent }), 0);
   if (path === '/themes') return send(res, 200, 'application/json', JSON.stringify({ themes: THEME_IDS, packs: THEME_PACKS }), 3600);

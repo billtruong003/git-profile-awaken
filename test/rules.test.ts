@@ -138,3 +138,14 @@ test('short numbers fit tight columns', async () => {
   assert.equal(fmtShort(263249), '263.2k');
   assert.equal(fmtShort(1046211), '1.0M');
 });
+
+test('the hunter JSON carries every stat with rank and percentile', async () => {
+  const { hunterJson } = await import('../src/presentation/http/router.js');
+  const { rawProfile } = await import('./fixture.js');
+  const { buildPlayer } = await import('../src/application/player.js');
+  const json = hunterJson(buildPlayer(rawProfile(), 'auto'));
+  assert.equal(json.stats.length, 6);
+  assert.ok(json.stats.every((s) => s.percentile >= 0 && s.percentile <= 1 && typeof s.rank === 'string'));
+  assert.equal(json.login, 'player-one');
+  assert.ok(JSON.stringify(json).length < 2000);
+});
