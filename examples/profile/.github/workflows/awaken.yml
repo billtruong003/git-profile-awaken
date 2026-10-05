@@ -2,8 +2,8 @@ name: Awaken
 
 on:
   schedule:
-    # Once a day, a few minutes after midnight in your timezone (17:07 UTC is 00:07 in UTC+7).
-    - cron: "7 17 * * *"
+    # Once a day, a few minutes after midnight in your timezone (17:10 UTC is 00:10 in UTC+7).
+    - cron: "10 17 * * *"
   workflow_dispatch:
   push:
     branches: [main]

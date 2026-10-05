@@ -1,10 +1,13 @@
 {
   "functions": {
     "api/index.ts": {
-      "maxDuration": 30,
-      "includeFiles": "node_modules/{@fontsource/chakra-petch/files/chakra-petch-latin-*-normal.woff2,@fontsource/jetbrains-mono/files/jetbrains-mono-latin-*-normal.woff2,harfbuzzjs/dist/harfbuzz-subset.wasm}"
+      "maxDuration": 60,
+      "includeFiles": "{docs/**,demo/**,node_modules/@fontsource/chakra-petch/files/chakra-petch-latin-*-normal.woff2,node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-*-normal.woff2,node_modules/harfbuzzjs/dist/harfbuzz-subset.wasm}"
     }
   },
+  "crons": [
+    { "path": "/api/cron/refresh", "schedule": "0 17 * * *" }
+  ],
   "rewrites": [
     { "source": "/(.*)", "destination": "/api" }
   ]

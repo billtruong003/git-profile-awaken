@@ -22,6 +22,8 @@ Your GitHub profile, rendered as the System window from a LitRPG: ranks from E t
 
 Every number on these images is real and comes from the GitHub API. They are regenerated daily from [billtruong003](https://github.com/billtruong003).
 
+**[Website and configurator](https://git-profile-awaken.vercel.app)** · **[User guide](docs/guide.md)** · **[Developer guide](docs/development.md)**
+
 ## Quick start
 
 You need a profile repository (the repository named after your username, the one whose README shows on your profile).
@@ -43,7 +45,7 @@ You need a profile repository (the repository named after your username, the one
    name: Awaken
    on:
      schedule:
-       - cron: "7 17 * * *"   # once a day; pick a time just after your midnight
+       - cron: "10 17 * * *"   # 00:10 in UTC+7; the configurator works this out for your zone
      workflow_dispatch:
      push:
        branches: [main]
@@ -178,7 +180,7 @@ Also: `daylight`, `cyberpunk`, `dracula`, `tokyonight`, `monokai`, `gruvbox`, `n
 
 ## Hosted endpoint
 
-If you would rather not run an Action, the endpoint renders single widgets on request (without commit hours, which take too long to fetch per request):
+If you would rather not run an Action, the endpoint renders single widgets on request. It keeps every profile it has drawn and refreshes them each night, so only the first view of a new profile waits a few seconds. Commit hours are not available this way.
 
 ```md
 ![Status](https://git-profile-awaken.vercel.app/api?username=YOUR_USERNAME&widget=status&theme=solo_leveling)
@@ -190,7 +192,7 @@ To host your own, import the repository into Vercel and set `GITHUB_TOKEN`.
 
 ## Development
 
-Node 22 or newer.
+The [developer guide](docs/development.md) covers the architecture, the design rules the code enforces, and how to add themes, widgets and achievements. Node 22 or newer.
 
 ```bash
 npm install

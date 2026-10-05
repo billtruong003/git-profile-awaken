@@ -1,0 +1,27 @@
+name: Nightly refresh
+
+# Vercel Cron refreshes the hosted endpoint once a night; one run handles about 30 players in its 60 s.
+# This workflow keeps calling the same route until nobody is left, for when there are more.
+# Needs the CRON_SECRET repository secret (the same value as on Vercel).
+
+on:
+  schedule:
+    - cron: "15 17 * * *"   # 00:15 in UTC+7, just after the Vercel cron
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Refresh until done
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          ENDPOINT: https://git-profile-awaken.vercel.app/api/cron/refresh
+        run: |
+          if [ -z "$CRON_SECRET" ]; then echo "CRON_SECRET is not set; skipping."; exit 0; fi
+          for round in $(seq 1 20); do
+            report=$(curl -fsS -H "Authorization: Bearer $CRON_SECRET" "$ENDPOINT")
+            echo "Round $round: $report"
+            remaining=$(echo "$report" | jq '.remaining')
+            [ "$remaining" = "0" ] && break
+          done

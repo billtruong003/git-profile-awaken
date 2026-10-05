@@ -2,7 +2,11 @@ import type { CalendarDay, LanguageShare, QuestInfo, Raid, RawProfile } from '..
 
 const ENDPOINT = 'https://api.github.com/graphql';
 const TIMEOUT_MS = 15_000;
-const MAX_REPO_PAGES = 10;
+/** Stars and languages come from the 300 most-starred repositories; the long tail adds almost nothing. */
+const MAX_REPO_PAGES = 3;
+const LANGUAGE_BATCH = 10;
+const PARALLEL = 10;
+const YEARS_PER_QUERY = 3;
 const HOUR_REPOS = 25;
 const HOUR_BATCH = 5;
 
@@ -33,63 +37,157 @@ const graphql = async <T>(token: string, query: string, variables: Record<string
 
   const payload = (await response.json()) as { data?: T; errors?: { type?: string; message: string }[] };
   const error = payload.errors?.[0];
-  if (error) {
-    throw new GithubError(error.message, error.type === 'NOT_FOUND' ? 'not_found' : 'upstream');
-  }
+  if (error) throw new GithubError(error.message, error.type === 'NOT_FOUND' ? 'not_found' : 'upstream');
   return payload.data as T;
 };
 
+/** Runs `tasks` with at most `limit` in flight. */
+const pooled = async <T>(tasks: (() => Promise<T>)[], limit: number): Promise<T[]> => {
+  const results: T[] = new Array(tasks.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < tasks.length) {
+      const i = next++;
+      results[i] = await tasks[i]!();
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, tasks.length) }, worker));
+  return results;
+};
+
+const chunk = <T>(items: T[], size: number): T[][] => {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+};
+
+// ---------- identity and counters: one cheap query ----------
+interface Identity {
+  id: string;
+  login: string;
+  name: string | null;
+  createdAt: string;
+  followers: { totalCount: number };
+  organizations: { totalCount: number };
+  pullRequests: { totalCount: number };
+  merged: { totalCount: number };
+  issues: { totalCount: number };
+}
+
+const fetchIdentity = async (login: string, token: string): Promise<Identity> => {
+  const data = await graphql<{ user: Identity | null }>(token, `query($login: String!) { user(login: $login) {
+    id login name createdAt
+    followers { totalCount } organizations { totalCount }
+    pullRequests { totalCount } merged: pullRequests(states: MERGED) { totalCount } issues { totalCount }
+  } }`, { login });
+  if (!data.user) throw new GithubError(`No GitHub user named "${login}".`, 'not_found');
+  return data.user;
+};
+
+// ---------- repositories: the list is cheap, languages are not ----------
 interface RepoNode {
   name: string;
   stargazerCount: number;
   pushedAt: string;
   createdAt: string;
-  primaryLanguage: { name: string; color: string | null } | null;
-  languages: { edges: { size: number; node: { name: string; color: string | null } }[] };
-  defaultBranchRef: { target: { message?: string } } | null;
 }
 
-interface ProfileData {
-  user: {
-    id: string;
-    login: string;
-    name: string | null;
-    createdAt: string;
-    followers: { totalCount: number };
-    organizations: { totalCount: number };
-    pullRequests: { totalCount: number };
-    merged: { totalCount: number };
-    issues: { totalCount: number };
-    repositories: { totalCount: number; pageInfo: { hasNextPage: boolean; endCursor: string | null }; nodes: RepoNode[] };
-  } | null;
+interface RepoPage {
+  user: { repositories: { totalCount: number; pageInfo: { hasNextPage: boolean; endCursor: string | null }; nodes: RepoNode[] } } | null;
 }
 
-const PROFILE_QUERY = `
-query($login: String!, $after: String) {
-  user(login: $login) {
-    id login name createdAt
-    followers { totalCount }
-    organizations { totalCount }
-    pullRequests { totalCount }
-    merged: pullRequests(states: MERGED) { totalCount }
-    issues { totalCount }
-    repositories(first: 100, after: $after, ownerAffiliations: OWNER, isFork: false, orderBy: { field: PUSHED_AT, direction: DESC }) {
-      totalCount
-      pageInfo { hasNextPage endCursor }
-      nodes {
-        name stargazerCount pushedAt createdAt
-        primaryLanguage { name color }
-        languages(first: 10, orderBy: { field: SIZE, direction: DESC }) { edges { size node { name color } } }
-        defaultBranchRef { target { ... on Commit { message } } }
+const REPO_PAGE_QUERY = `query($login: String!, $after: String) { user(login: $login) {
+  repositories(first: 100, after: $after, ownerAffiliations: OWNER, isFork: false, orderBy: { field: STARGAZERS, direction: DESC }) {
+    totalCount pageInfo { hasNextPage endCursor }
+    nodes { name stargazerCount pushedAt createdAt }
+  }
+} }`;
+
+/**
+ * Pages through the repository list with only cheap fields; asking for languages or commit messages here
+ * costs 3–9 s per page. `onPage` lets the caller start work on a page while the next one loads.
+ */
+const fetchRepoList = async (login: string, token: string, onPage: (page: RepoNode[]) => void) => {
+  let after: string | null = null;
+  let total = 0;
+  const repos: RepoNode[] = [];
+  for (let index = 0; index < MAX_REPO_PAGES; index++) {
+    const data: RepoPage = await graphql<RepoPage>(token, REPO_PAGE_QUERY, { login, after });
+    if (!data.user) throw new GithubError(`No GitHub user named "${login}".`, 'not_found');
+    total = data.user.repositories.totalCount;
+    repos.push(...data.user.repositories.nodes);
+    onPage(data.user.repositories.nodes);
+    if (!data.user.repositories.pageInfo.hasNextPage) break;
+    after = data.user.repositories.pageInfo.endCursor;
+  }
+  return { repos, total };
+};
+
+type LanguageBatch = Record<string, { languages: { edges: { size: number; node: { name: string; color: string | null } }[] } } | null>;
+
+/** Languages for one page of repositories, by alias, in small batches that run side by side. */
+const fetchLanguages = (login: string, token: string, names: string[]): Promise<LanguageBatch[]> =>
+  pooled(chunk(names, LANGUAGE_BATCH).map((batch) => () => {
+    const body = batch
+      .map((name, j) => `r${j}: repository(owner: ${JSON.stringify(login)}, name: ${JSON.stringify(name)}) { languages(first: 10, orderBy: { field: SIZE, direction: DESC }) { edges { size node { name color } } } }`)
+      .join('\n');
+    return graphql<LanguageBatch>(token, `{ ${body} }`);
+  }), PARALLEL);
+
+const languageShares = (results: LanguageBatch[]): LanguageShare[] => {
+  const totals = new Map<string, { size: number; color: string }>();
+  let all = 0;
+  for (const data of results) {
+    for (const repo of Object.values(data)) {
+      for (const edge of repo?.languages.edges ?? []) {
+        const entry = totals.get(edge.node.name) ?? { size: 0, color: edge.node.color ?? '#888888' };
+        entry.size += edge.size;
+        totals.set(edge.node.name, entry);
+        all += edge.size;
       }
     }
   }
-}`;
+  return [...totals.entries()]
+    .map(([name, { size, color }]) => ({ name, color, percent: all ? Math.round((size / all) * 1000) / 10 : 0 }))
+    .sort((a, b) => b.percent - a.percent)
+    .slice(0, 10);
+};
 
+// ---------- contributions ----------
 interface YearTotals {
   totalCommitContributions: number;
   totalPullRequestReviewContributions: number;
 }
+
+const fetchYears = async (login: string, token: string, years: number[], now: Date): Promise<YearTotals[]> => {
+  const aliases = years.map((year) => {
+    const to = year === now.getUTCFullYear() ? now.toISOString() : `${year}-12-31T23:59:59Z`;
+    return `y${year}: contributionsCollection(from: "${year}-01-01T00:00:00Z", to: "${to}") { totalCommitContributions totalPullRequestReviewContributions }`;
+  });
+  const data = await graphql<{ user: Record<string, YearTotals> }>(token, `query($login: String!) { user(login: $login) { ${aliases.join('\n')} } }`, { login });
+  return Object.values(data.user);
+};
+
+/**
+ * One contributions window may not exceed a year, so every year is its own alias. Long-lived accounts are
+ * split into groups of three years that run in parallel; a group GitHub fails on is retried year by year.
+ */
+const fetchLifetime = async (login: string, token: string, createdAt: string, now: Date) => {
+  const years: number[] = [];
+  for (let year = new Date(createdAt).getUTCFullYear(); year <= now.getUTCFullYear(); year++) years.push(year);
+  const groups = await pooled(chunk(years, YEARS_PER_QUERY).map((group) => async () => {
+    try {
+      return await fetchYears(login, token, group, now);
+    } catch {
+      return (await Promise.all(group.map((year) => fetchYears(login, token, [year], now)))).flat();
+    }
+  }), PARALLEL);
+  const totals = groups.flat();
+  return {
+    commits: totals.reduce((sum, y) => sum + y.totalCommitContributions, 0),
+    reviews: totals.reduce((sum, y) => sum + y.totalPullRequestReviewContributions, 0),
+  };
+};
 
 interface LastYear {
   user: {
@@ -103,67 +201,36 @@ interface LastYear {
       contributionCalendar: { weeks: { contributionDays: { contributionCount: number; date: string; weekday: number }[] }[] };
     };
     raids: { nodes: { repository: { nameWithOwner: string; stargazerCount: number; owner: { login: string } } }[] };
-  };
+  } | null;
 }
 
-const LAST_YEAR_QUERY = `
-query($login: String!) {
-  user(login: $login) {
-    contributionsCollection {
-      totalCommitContributions totalPullRequestContributions totalPullRequestReviewContributions
-      totalIssueContributions totalRepositoryContributions
-      commitContributionsByRepository(maxRepositories: 100) { repository { name owner { login } } contributions { totalCount } }
-      contributionCalendar { weeks { contributionDays { contributionCount date weekday } } }
-    }
-    raids: pullRequests(first: 100, states: MERGED, orderBy: { field: CREATED_AT, direction: DESC }) {
-      nodes { repository { nameWithOwner stargazerCount owner { login } } }
-    }
+const LAST_YEAR_QUERY = `query($login: String!) { user(login: $login) {
+  contributionsCollection {
+    totalCommitContributions totalPullRequestContributions totalPullRequestReviewContributions
+    totalIssueContributions totalRepositoryContributions
+    commitContributionsByRepository(maxRepositories: 100) { repository { name owner { login } } contributions { totalCount } }
+    contributionCalendar { weeks { contributionDays { contributionCount date weekday } } }
   }
-}`;
-
-const fetchRepos = async (login: string, token: string) => {
-  let after: string | null = null;
-  let first: NonNullable<ProfileData['user']> | null = null;
-  const repos: RepoNode[] = [];
-  for (let page = 0; page < MAX_REPO_PAGES; page++) {
-    const data: ProfileData = await graphql<ProfileData>(token, PROFILE_QUERY, { login, after });
-    if (!data.user) throw new GithubError(`No GitHub user named "${login}".`, 'not_found');
-    first ??= data.user;
-    repos.push(...data.user.repositories.nodes);
-    if (!data.user.repositories.pageInfo.hasNextPage) break;
-    after = data.user.repositories.pageInfo.endCursor;
+  raids: pullRequests(first: 100, states: MERGED, orderBy: { field: CREATED_AT, direction: DESC }) {
+    nodes { repository { nameWithOwner stargazerCount owner { login } } }
   }
-  return { user: first!, repos };
-};
-
-/** Every year since the account was created, one alias per year (a contributions window may not exceed a year). */
-const fetchLifetime = async (login: string, token: string, createdAt: string, now: Date) => {
-  const firstYear = new Date(createdAt).getUTCFullYear();
-  const aliases: string[] = [];
-  for (let year = firstYear; year <= now.getUTCFullYear(); year++) {
-    const to = year === now.getUTCFullYear() ? now.toISOString() : `${year}-12-31T23:59:59Z`;
-    aliases.push(`y${year}: contributionsCollection(from: "${year}-01-01T00:00:00Z", to: "${to}") { totalCommitContributions totalPullRequestReviewContributions }`);
-  }
-  const data = await graphql<{ user: Record<string, YearTotals> }>(token, `query($login: String!) { user(login: $login) { ${aliases.join('\n')} } }`, { login });
-  const years = Object.values(data.user);
-  return {
-    commits: years.reduce((sum, y) => sum + y.totalCommitContributions, 0),
-    reviews: years.reduce((sum, y) => sum + y.totalPullRequestReviewContributions, 0),
-  };
-};
+} }`;
 
 const hourIn = (iso: string, timeZone: string): number =>
   Number(new Intl.DateTimeFormat('en-US', { timeZone, hour: 'numeric', hourCycle: 'h23' }).format(new Date(iso)));
 
+type HistoryBatch = Record<string, { defaultBranchRef: { target: { history?: { nodes: { authoredDate: string }[] } } } | null } | null>;
+
 /** Authored times of the player's commits in their busiest repositories over the last year. */
 const fetchCommitHours = async (token: string, userId: string, repos: { owner: string; name: string }[], since: string, timeZone: string) => {
-  const hours = Array<number>(24).fill(0);
-  for (let i = 0; i < repos.length; i += HOUR_BATCH) {
-    const batch = repos.slice(i, i + HOUR_BATCH);
+  const results = await pooled(chunk(repos, HOUR_BATCH).map((batch) => () => {
     const body = batch
       .map((r, j) => `r${j}: repository(owner: ${JSON.stringify(r.owner)}, name: ${JSON.stringify(r.name)}) { defaultBranchRef { target { ... on Commit { history(first: 100, since: "${since}", author: { id: "${userId}" }) { nodes { authoredDate } } } } } }`)
       .join('\n');
-    const data = await graphql<Record<string, { defaultBranchRef: { target: { history?: { nodes: { authoredDate: string }[] } } } | null } | null>>(token, `{ ${body} }`);
+    return graphql<HistoryBatch>(token, `{ ${body} }`);
+  }), PARALLEL);
+  const hours = Array<number>(24).fill(0);
+  for (const data of results) {
     for (const repo of Object.values(data)) {
       for (const commit of repo?.defaultBranchRef?.target.history?.nodes ?? []) hours[hourIn(commit.authoredDate, timeZone)]!++;
     }
@@ -175,38 +242,30 @@ const fetchCommitHours = async (token: string, userId: string, repos: { owner: s
  * The quest is the player's own most recently pushed repository, so every commit on it counts, even ones
  * authored under an email that is not linked to the account.
  */
-const fetchQuest = async (token: string, login: string, repo: RepoNode | undefined): Promise<QuestInfo | null> => {
-  if (!repo) return null;
-  const data = await graphql<{ repository: { defaultBranchRef: { target: { history?: { totalCount: number } } } | null } | null }>(
+const fetchQuest = async (token: string, login: string): Promise<QuestInfo | null> => {
+  type QuestRepo = RepoNode & {
+    primaryLanguage: { name: string; color: string | null } | null;
+    defaultBranchRef: { target: { message?: string; history?: { totalCount: number } } } | null;
+  };
+  const data = await graphql<{ user: { repositories: { nodes: QuestRepo[] } } | null }>(
     token,
-    `query($owner: String!, $name: String!, $since: GitTimestamp!) { repository(owner: $owner, name: $name) { defaultBranchRef { target { ... on Commit { history(since: $since) { totalCount } } } } } }`,
-    { owner: login, name: repo.name, since: repo.createdAt },
+    `query($login: String!) { user(login: $login) { repositories(first: 1, ownerAffiliations: OWNER, isFork: false, orderBy: { field: PUSHED_AT, direction: DESC }) { nodes {
+      name stargazerCount pushedAt createdAt primaryLanguage { name color }
+      defaultBranchRef { target { ... on Commit { message history { totalCount } } } }
+    } } } }`,
+    { login },
   );
+  const r = data.user?.repositories.nodes[0];
+  if (!r) return null;
+  const repo = r;
   return {
     repo: repo.name,
-    language: repo.primaryLanguage ? { name: repo.primaryLanguage.name, color: repo.primaryLanguage.color ?? '#888888' } : null,
+    language: r?.primaryLanguage ? { name: r.primaryLanguage.name, color: r.primaryLanguage.color ?? '#888888' } : null,
     createdAt: repo.createdAt,
     pushedAt: repo.pushedAt,
-    lastMessage: repo.defaultBranchRef?.target.message?.split('\n')[0] ?? '',
-    commits: data.repository?.defaultBranchRef?.target.history?.totalCount ?? 0,
+    lastMessage: r?.defaultBranchRef?.target.message?.split('\n')[0] ?? '',
+    commits: r?.defaultBranchRef?.target.history?.totalCount ?? 0,
   };
-};
-
-const languageShares = (repos: RepoNode[]): LanguageShare[] => {
-  const totals = new Map<string, { size: number; color: string }>();
-  let all = 0;
-  for (const repo of repos) {
-    for (const edge of repo.languages.edges) {
-      const entry = totals.get(edge.node.name) ?? { size: 0, color: edge.node.color ?? '#888888' };
-      entry.size += edge.size;
-      totals.set(edge.node.name, entry);
-      all += edge.size;
-    }
-  }
-  return [...totals.entries()]
-    .map(([name, { size, color }]) => ({ name, color, percent: all ? Math.round((size / all) * 1000) / 10 : 0 }))
-    .sort((a, b) => b.percent - a.percent)
-    .slice(0, 10);
 };
 
 export interface FetchOptions {
@@ -215,18 +274,38 @@ export interface FetchOptions {
   now?: Date;
 }
 
+/**
+ * Everything independent runs at once. The critical path is the repository list (about 2 s per 100
+ * repositories, at most three pages), with each page's language batches starting as soon as that page arrives.
+ */
 export const fetchRawProfile = async (login: string, token: string, options: FetchOptions): Promise<RawProfile> => {
   const now = options.now ?? new Date();
-  const { user, repos } = await fetchRepos(login, token);
-  const [lifetime, lastYear] = await Promise.all([
-    fetchLifetime(user.login, token, user.createdAt, now),
-    graphql<LastYear>(token, LAST_YEAR_QUERY, { login: user.login }),
-  ]);
+  const identityP = fetchIdentity(login, token);
+  const lastYearP = graphql<LastYear>(token, LAST_YEAR_QUERY, { login });
+  const questP = fetchQuest(token, login);
+  const languagePages: Promise<LanguageBatch[]>[] = [];
+  const listP = fetchRepoList(login, token, (page) => {
+    languagePages.push(fetchLanguages(login, token, page.map((r) => r.name)));
+  });
+  const languagesP = listP.then(async () => languageShares((await Promise.all(languagePages)).flat()));
+  const lifetimeP = identityP.then((user) => fetchLifetime(login, token, user.createdAt, now));
+  const hoursP = options.commitHours
+    ? Promise.all([identityP, lastYearP]).then(([user, last]) => {
+      const busiest = [...(last.user?.contributionsCollection.commitContributionsByRepository ?? [])]
+        .sort((a, b) => b.contributions.totalCount - a.contributions.totalCount)
+        .slice(0, HOUR_REPOS)
+        .map((r) => ({ owner: r.repository.owner.login, name: r.repository.name }));
+      return fetchCommitHours(token, user.id, busiest, new Date(now.getTime() - 365 * 864e5).toISOString(), options.timeZone);
+    })
+    : Promise.resolve(null);
+
+  const [user, lastYear, { repos, total }, languages, lifetime, commitHours, quest] = await Promise.all([identityP, lastYearP, listP, languagesP, lifetimeP, hoursP, questP]);
+  if (!lastYear.user) throw new GithubError(`No GitHub user named "${login}".`, 'not_found');
+
   const year = lastYear.user.contributionsCollection;
   const calendar: CalendarDay[] = year.contributionCalendar.weeks.flatMap((w) =>
     w.contributionDays.map((d) => ({ date: d.date, count: d.contributionCount, weekday: d.weekday })),
   );
-
   const raidMap = new Map<string, Raid>();
   for (const pr of lastYear.user.raids.nodes) {
     if (pr.repository.owner.login.toLowerCase() === user.login.toLowerCase()) continue;
@@ -235,24 +314,13 @@ export const fetchRawProfile = async (login: string, token: string, options: Fet
     raidMap.set(raid.repo, raid);
   }
 
-  const oneYearAgo = new Date(now.getTime() - 365 * 864e5).toISOString();
-  const busiest = [...year.commitContributionsByRepository]
-    .sort((a, b) => b.contributions.totalCount - a.contributions.totalCount)
-    .slice(0, HOUR_REPOS)
-    .map((r) => ({ owner: r.repository.owner.login, name: r.repository.name }));
-
-  const [quest, commitHours] = await Promise.all([
-    fetchQuest(token, user.login, repos[0]),
-    options.commitHours ? fetchCommitHours(token, user.id, busiest, oneYearAgo, options.timeZone) : Promise.resolve(null),
-  ]);
-
   return {
     login: user.login,
     name: user.name,
     createdAt: user.createdAt,
     followers: user.followers.totalCount,
     organizations: user.organizations.totalCount,
-    ownedRepos: user.repositories.totalCount,
+    ownedRepos: total,
     stars: repos.reduce((sum, r) => sum + r.stargazerCount, 0),
     pullRequests: user.pullRequests.totalCount,
     mergedPullRequests: user.merged.totalCount,
@@ -268,7 +336,7 @@ export const fetchRawProfile = async (login: string, token: string, options: Fet
       activeRepos: year.commitContributionsByRepository.length,
       calendar,
     },
-    languages: languageShares(repos),
+    languages,
     quest,
     raids: [...raidMap.values()],
     commitHours,
