@@ -41,7 +41,7 @@
 <path d="M24 18H72V60L66 66H18V24Z" fill="#f4f7fc"/>
 <path d="M24.4 19H71V59.6L65.6 65H19V24.4Z" fill="none" stroke="#d61f45" stroke-width="2"/><path d="M25.5 22.5H67.5V58.5L64.5 61.5H22.5V25.5Z" fill="none" stroke="#d61f45" stroke-width="1"/>
 <text x="45" y="49.2" class="rank tight" fill="#d61f45" text-anchor="middle">SSS</text>
-<clipPath id="fs46"><path d="M24 18H72V60L66 66H18V24Z"/></clipPath><g clip-path="url(#fs46)"><rect class="shine" x="-6.3" y="18" width="24.3" height="48" fill="url(#shine)" style="animation-duration:1.9s"/></g>
+<clipPath id="fs53"><path d="M24 18H72V60L66 66H18V24Z"/></clipPath><g clip-path="url(#fs53)"><rect class="shine" x="-6.3" y="18" width="24.3" height="48" fill="url(#shine)" style="animation-duration:1.9s"/></g>
 </g>
 <text x="84" y="36" class="label" fill="#4a5a7c">LUK</text>
 <text x="84" y="58" class="body" fill="#0d1830">Stars earned</text>
