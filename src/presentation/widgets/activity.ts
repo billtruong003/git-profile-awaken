@@ -1,6 +1,6 @@
 import type { Player } from '../../domain/types.js';
 import { activityLevel } from '../../application/activity.js';
-import { cut, fmt, footer, frame, glow, label, r, text, use, type Ctx, type Rendered } from '../svg/kit.js';
+import { cut, fit, fmt, footer, frame, glow, label, r, text, use, type Ctx, type Rendered } from '../svg/kit.js';
 import { offsetLabel } from './details.js';
 
 const CELL = 12;
@@ -138,8 +138,11 @@ export const dailyWidget = (ctx: Ctx, p: Player, timeZone: string): Rendered => 
   const W = 420, H = 280;
   const { t } = ctx;
   const a = p.activity;
-  const today = a.today;
-  const inPenalty = (today?.count ?? 0) === 0 && (a.yesterday?.count ?? 1) === 0;
+  const board = p.quests;
+  // The day being judged: the one that just ended when the board has day-by-day data, else today.
+  const judgedCount = board ? p.raw.days![1]!.contributions : a.today?.count ?? 0;
+  const todayCount = board ? p.raw.days![0]!.contributions : a.today?.count ?? 0;
+  const inPenalty = board ? judgedCount === 0 && todayCount === 0 : (a.today?.count ?? 0) === 0 && (a.yesterday?.count ?? 1) === 0;
 
   if (inPenalty) {
     const days = p.raw.year.calendar;
@@ -148,35 +151,63 @@ export const dailyWidget = (ctx: Ctx, p: Player, timeZone: string): Rendered => 
     const last = [...days].reverse().find((d) => d.count > 0);
     const f = frame(ctx, W, H, 'PENALTY ZONE', { accent: t.alert, edge: t.alert });
     const g = glow(ctx, true);
-    const rows: [string, string][] = [['Days in zone', String(idle)], ['Last contribution', last?.date ?? 'none'], ['Escape', '1 contribution today']];
+    const missed = board?.judged.date ?? a.yesterday?.date ?? 'the last day';
+    const rows: [string, string][] = [['Days in zone', String(Math.max(1, idle))], ['Last contribution', last?.date ?? 'none'], ['Escape', '1 contribution today']];
     const body = `<g class="pulse">${f.svg}</g>
 ${text(f.x, f.y + 30, 'STREAK LOST', 'level', t.alert, { cls: 'flicker', ...(g ? { filter: g } : {}) })}
-${text(f.x, f.y + 56, `No contribution on ${a.yesterday?.date ?? 'the last day'}.`, 'body', t.ink)}
+${text(f.x, f.y + 56, `No contribution on ${missed}.`, 'body', t.ink)}
 ${text(f.x, f.y + 74, 'The System has moved you to the Penalty Zone.', 'body', t.ink)}
 ${rows.map(([k, v], i) => `${label(f.x, f.y + 108 + i * 25, k, ctx)}${text(f.x + f.w, f.y + 108 + i * 25, v, 'value', t.ink, { anchor: 'end' })}<line x1="${f.x}" y1="${f.y + 116.5 + i * 25}" x2="${f.x + f.w}" y2="${f.y + 116.5 + i * 25}" stroke="${t.line}"/>`).join('')}
 ${footer(ctx, p.raw.login, p.raw.fetchedAt.slice(0, 10), W, H)}`;
-    return { width: W, height: H, title: `${p.raw.login}: penalty zone`, desc: `No contribution for ${idle} day(s). Streak lost.`, body };
+    return { width: W, height: H, title: `${p.raw.login}: penalty zone`, desc: `No contribution on ${missed}. Streak lost.`, body };
   }
 
-  const todayDate = today?.date ?? '';
-  const pushedToday = p.raw.quest ? dateIn(p.raw.quest.pushedAt, timeZone) === todayDate : false;
-  const tasks: [string, string, boolean][] = [
-    ['Make one contribution today', `${Math.min(1, today?.count ?? 0)} / 1`, (today?.count ?? 0) > 0],
-    [`Push to ${p.raw.quest?.repo ?? 'your active quest'}`, `${pushedToday ? 1 : 0} / 1`, pushedToday],
-    ['Keep MP at 14 or more (14 days)', `${a.mp14} / 14`, a.mp14 >= 14],
-  ];
-  const cleared = tasks.every((x) => x[2]);
-  const f = frame(ctx, W, H, cleared ? 'QUEST COMPLETE' : 'DAILY QUEST');
-  const body = `${f.svg}
+  if (!board) {
+    // Without day-by-day data: the three quests the calendar alone can judge.
+    const quests: [string, string, boolean][] = [
+      ['Make one contribution', `${Math.min(1, todayCount)} / 1`, todayCount > 0],
+      ['Keep a 3-day streak', `${Math.min(3, a.currentStreak)} / 3`, a.currentStreak >= 3],
+      ['Keep MP at 14 (14 days)', `${Math.min(14, a.mp14)} / 14`, a.mp14 >= 14],
+    ];
+    const f = frame(ctx, W, H, quests.every((q) => q[2]) ? 'QUEST COMPLETE' : 'DAILY QUEST');
+    const body = `${f.svg}
 ${label(f.x, f.y + 8, `Clear before 00:00 ${offsetLabel(timeZone)}`, ctx)}
-${text(f.x + f.w, f.y + 8, 'resets daily', 'caption', t.muted, { anchor: 'end' })}
-${tasks.map(([name, count, done], i) => {
-    const y = f.y + 28 + i * 34;
-    return `${check(ctx, f.x, y, done)}${text(f.x + 30, y + 14, name, 'body', done ? t.muted : t.ink)}${text(f.x + f.w, y + 14, count, 'value', done ? t.system : t.ink, { anchor: 'end' })}<line x1="${f.x}" y1="${y + 26.5}" x2="${f.x + f.w}" y2="${y + 26.5}" stroke="${t.line}"/>`;
-  }).join('')}
-${cleared
-    ? text(f.x, f.y + 150, `Streak ${a.currentStreak} days. The System acknowledges your effort.`, 'body', t.system)
-    : text(f.x, f.y + 150, 'Miss today and you enter the Penalty Zone.', 'body', t.alert)}
+${quests.map(([name, count, done], i) => questRow(ctx, f.x, f.y + 28 + i * 34, f.w, name, count, done)).join('')}
 ${footer(ctx, p.raw.login, p.raw.fetchedAt.slice(0, 10), W, H)}`;
-  return { width: W, height: H, title: `${p.raw.login}: daily quest`, desc: tasks.map(([n, c]) => `${n} ${c}`).join(', '), body };
+    return { width: W, height: H, title: `${p.raw.login}: daily quest`, desc: quests.map(([n, c]) => `${n} ${c}`).join(', '), body };
+  }
+
+  const { judged, today, boss } = board;
+  const perfect = judged.cleared === judged.quests.length;
+  const f = frame(ctx, W, H, perfect ? 'QUEST COMPLETE' : 'DAILY QUEST');
+  const g = glow(ctx);
+  const chip = `CLEARED ${judged.cleared} / ${judged.quests.length}`;
+  const chipW = chip.length * 7 + 16;
+  const segW = (f.w - 120 - (boss.goal - 1) * 4) / boss.goal;
+  const segments = Array.from({ length: boss.goal }, (_, i) => {
+    const hit = i < boss.active;
+    return `<rect x="${r(f.x + 120 + i * (segW + 4))}" y="${f.y + 128}" width="${r(segW)}" height="8" fill="${hit ? t.shadow : t.raised}"${hit && boss.defeated && g ? ` filter="${g}"` : ''}/>`;
+  }).join('');
+  const todayNames = today.quests.map((q) => q.short).join(' · ');
+  const body = `${f.svg}
+${label(f.x, f.y + 8, `Result · ${judged.date}`, ctx)}
+<rect x="${r(f.x + f.w - chipW)}" y="${f.y - 6}" width="${r(chipW)}" height="20" fill="${perfect ? t.system : t.void}"${perfect ? '' : ` stroke="${t.line}"`}/>
+${text(f.x + f.w - 8, f.y + 8, chip, 'code', perfect ? t.onSystem : t.ink, { anchor: 'end' })}
+${judged.quests.map((q, i) => questRow(ctx, f.x, f.y + 24 + i * 30, f.w, q.name, q.progress, q.done)).join('')}
+${label(f.x, f.y + 136, 'Weekly boss', ctx)}
+${segments}
+${text(f.x + f.w, f.y + 154, boss.defeated ? `DEFEATED · ${boss.active} ACTIVE DAYS` : `${boss.active} / ${boss.goal} ACTIVE DAYS THIS WEEK`, 'code', boss.defeated ? t.shadow : t.muted, { anchor: 'end' })}
+${label(f.x, f.y + 178, 'Today', ctx)}
+${text(f.x + 56, f.y + 178, fit(todayNames, 'body', f.w - 56), 'body', t.ink)}
+${footer(ctx, p.raw.login, p.raw.fetchedAt.slice(0, 10), W, H)}`;
+  return {
+    width: W, height: H, title: `${p.raw.login}: daily quest`,
+    desc: `${judged.date}: cleared ${judged.cleared} of ${judged.quests.length} (${judged.quests.map((q) => `${q.name} ${q.progress}`).join(', ')}). Weekly boss ${boss.active} of ${boss.goal} days. Today: ${today.quests.map((q) => q.name).join(', ')}.`,
+    body,
+  };
+};
+
+const questRow = (ctx: Ctx, x: number, y: number, w: number, name: string, progress: string, done: boolean): string => {
+  const { t } = ctx;
+  return `${check(ctx, x, y, done)}${text(x + 28, y + 14, fit(name, 'body', w - 100), 'body', done ? t.muted : t.ink)}${text(x + w, y + 14, progress, 'value', done ? t.system : t.ink, { anchor: 'end' })}<line x1="${x}" y1="${y + 24.5}" x2="${x + w}" y2="${y + 24.5}" stroke="${t.line}"/>`;
 };

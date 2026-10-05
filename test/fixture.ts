@@ -34,6 +34,11 @@ export const rawProfile = (overrides: Partial<RawProfile> = {}): RawProfile => (
   quest: { repo: 'ShapeWright', language: { name: 'Python', color: '#3572A5' }, createdAt: '2026-09-29T15:13:33Z', pushedAt: '2026-10-05T11:46:24Z', lastMessage: 'docs: add track W & <friends>', commits: 65 },
   raids: [{ repo: 'SummonGods/SpiritWar', stars: 0, merged: 3 }],
   commitHours: [23, 24, 26, 16, 18, 11, 4, 28, 45, 9, 22, 21, 26, 38, 19, 18, 21, 22, 18, 20, 9, 4, 12, 15],
+  days: Array.from({ length: 9 }, (_, i) => {
+    const date = new Date(Date.UTC(2026, 9, 5) - i * 864e5);
+    return { date: date.toISOString().slice(0, 10), weekday: date.getUTCDay(), contributions: [2, 4, 0, 6, 1, 3, 5, 2, 0][i]!, commits: [2, 3, 0, 5, 1, 3, 4, 2, 0][i]!, repos: [1, 2, 0, 2, 1, 1, 3, 1, 0][i]!, issues: i === 1 ? 1 : 0, stars: i === 3 ? 2 : 0 };
+  }),
+  closes: { quickdraws: 2, unreviewedMerges: 12, sampled: 40 },
   fetchedAt: '2026-10-05T12:00:00Z',
   ...overrides,
 });

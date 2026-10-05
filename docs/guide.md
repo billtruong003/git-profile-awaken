@@ -1,6 +1,6 @@
 # User guide
 
-Git Profile Awaken draws your GitHub activity as the System window from a LitRPG: ranks from E to EX measured against real GitHub players, a level, a job class, titles you earn, sixteen achievements, and your last year of contributions played as a small game. Pick one of ten README layouts and the Action arranges everything for you. This guide covers setting it up, every option, and what to do when something looks wrong.
+Git Profile Awaken draws your GitHub activity as the System window from a LitRPG: ranks from E to EX measured against real GitHub players, a level, a job class, titles you earn, twenty-five achievements, and your last year of contributions played as a small game. Pick one of ten README layouts and the Action arranges everything for you. This guide covers setting it up, every option, and what to do when something looks wrong.
 
 ## How it works
 
@@ -166,7 +166,7 @@ Full-width widgets get a line each, half-width ones pair up, runes and contacts 
 | `board` | half | The latest posts from your feeds. |
 | `oracle` | half | A quote of the day. |
 | `arise`, `raid` | full | One activity style regardless of `activity` (the Activity layout shows both). |
-| `achievements` | full | Your equipped title and all sixteen achievements with their tiers. |
+| `achievements` | full | Your equipped title and all twenty-five achievements with their tiers. |
 | `activity` | full | Your last year as ARISE or Dungeon Raid. |
 | `quest` | half | Your most recently pushed repository as the active quest. |
 | `skills` | half | Your top languages by code size. |
@@ -228,12 +228,37 @@ Every achievement has three tiers. Tier I unlocks its title; set `"title"` to th
 | `veteran` | Veteran | 1 / 3 / 5 years on GitHub |
 | `berserker` | Berserker | 10 / 30 / 60 contributions in one day |
 | `diligent` | Diligent | 50 / 150 / 300 active days in the last year |
+| `pull-shark` | Pull Shark | 2 / 16 / 128 pull requests merged |
+| `quickdraw` | Quickdraw | 1 / 5 / 25 pull requests or issues closed within 5 minutes of opening (last 100 of each) |
+| `yolo` | YOLO | 1 / 10 / 50 pull requests merged without a review (last 100) |
+| `daily-grinder` | Daily Grinder | 7 / 30 / 100 perfect days (every daily quest cleared) |
+| `perfect-week` | Perfect Week | 7 / 14 / 30 perfect days in a row |
+| `quest-hunter` | Quest Hunter | 50 / 250 / 1,000 daily quests cleared |
+| `boss-slayer` | Boss Slayer | 1 / 10 / 50 weekly bosses defeated |
+| `escape-artist` | Escape Artist | 3 / 10 / 25 escapes from the Penalty Zone the next day |
+| `collector` | Collector | 4 / 7 / 10 kinds of daily quest cleared |
+
+The daily quest titles count from your first Action run: their history lives in `awaken/player.json`, so nothing before that run is counted, and the hosted endpoint shows them as needing the Action. Pull Shark, Quickdraw and YOLO are inspired by GitHub's own badges but judged by this project; GitHub has no API for its badges.
 
 If you ask for a title you have not earned yet, the widgets show your best earned title instead and the run log says so.
 
 ## The daily quest and the Penalty Zone
 
-The `daily` widget gives you three tasks that reset at midnight in your timezone: make one contribution, push to your active quest repository, and keep at least 14 contributions over the last 14 days. Clear all three and it becomes **Quest Complete**.
+Every day has three easy quests, in your timezone: **make one contribution** (always, it is your streak) and two more drawn from the pool below. The draw is different every day and for every player, and the same on every run.
+
+| Quest | Cleared with |
+|---|---|
+| Land 3 contributions | 3 contributions that day |
+| Commit to any repository | 1 commit |
+| Commit to 2 repositories | commits in 2 repositories |
+| Beat your daily average | at least your average per day over the year (2 or more) |
+| Star a repository you like | 1 star given |
+| Open an issue | 1 issue: a bug, an idea, a question |
+| Keep a 3-day streak | contributions on 3 days in a row |
+| Keep MP at 14 | 14 contributions over the last 14 days |
+| Weekend raid (Saturday and Sunday only) | 2 contributions |
+
+The nightly run happens just after midnight, so the widget grades **the day that just ended** (CLEARED 2 / 3) and lists today's quests underneath. Clear all three and it reads **Quest Complete**. The **weekly boss** falls when you have been active on 4 days of the week (Monday to Sunday).
 
 A day with no contributions sends you to the **Penalty Zone**: the widget turns red, counts the days you have spent there, and shows how to get out (one contribution).
 

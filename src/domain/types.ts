@@ -47,6 +47,48 @@ export interface Raid {
   merged: number;
 }
 
+/** One day of activity in the player's timezone, what the daily quests are judged on. */
+export interface DayLog {
+  date: string;
+  /** 0 = Sunday. */
+  weekday: number;
+  contributions: number;
+  commits: number;
+  repos: number;
+  issues: number;
+  stars: number;
+}
+
+export interface QuestStatus {
+  id: string;
+  name: string;
+  short: string;
+  done: boolean;
+  /** e.g. "2 / 3". */
+  progress: string;
+}
+
+export interface DailyBoard {
+  /** The day that just ended: what the nightly image grades. */
+  judged: { date: string; quests: QuestStatus[]; cleared: number };
+  /** Today's quests, so players know what to do. */
+  today: { date: string; quests: QuestStatus[] };
+  boss: { weekStart: string; active: number; goal: number; defeated: boolean };
+}
+
+/** Quest results kept in player.json between runs; quest titles count from the first run. */
+export interface QuestHistory {
+  /** Judged days already counted, newest first (the last 60), so a second run on a day counts nothing twice. */
+  days: { date: string; cleared: number; total: number }[];
+  perfectDays: number;
+  run: number;
+  bestRun: number;
+  questsDone: number;
+  bosses: string[];
+  escapes: number;
+  kinds: string[];
+}
+
 /** GitHub data, normalized, before any game rule is applied. */
 export interface RawProfile {
   login: string;
@@ -75,6 +117,10 @@ export interface RawProfile {
   raids: Raid[];
   /** Commits per hour of day in the player's timezone, or null when not fetched. */
   commitHours: number[] | null;
+  /** Today and the eight days before it, newest first, in the player's timezone. Null when not fetched. */
+  days: DayLog[] | null;
+  /** Your most recent merged pull requests and closed issues, for Pull Shark, Quickdraw and YOLO. */
+  closes: { quickdraws: number; unreviewedMerges: number; sampled: number } | null;
   fetchedAt: string;
 }
 
@@ -130,6 +176,10 @@ export interface Player {
   achievements: Achievement[];
   equippedTitle: Achievement | null;
   activity: ActivitySummary;
+  /** Daily quests; null when the day-by-day data was not fetched. */
+  quests: DailyBoard | null;
+  /** Quest history after this run; null without the Action. */
+  questHistory: QuestHistory | null;
   /** Present when the Action gathered them (spotlight, feeds, quote, progress events). */
   extras?: Extras;
 }

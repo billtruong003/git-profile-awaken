@@ -14,7 +14,9 @@ import { THEME_IDS, THEME_PACKS } from '../theme/themes.js';
 import { docsPage, isDocPath } from '../web/docs.js';
 import { homePage } from '../web/home.js';
 import { renderBento } from '../layouts.js';
-import { renderWidgets } from '../widgets/index.js';
+import { extrasOf, renderWidgets } from '../widgets/index.js';
+import { resolveArsenal } from '../../application/arsenal.js';
+import { TECH_ICONS } from '../svg/brandIcons.js';
 
 const store = createStore();
 /** Widgets that draw awaken.json data or run history, which the public server does not have. */
@@ -72,6 +74,12 @@ const handleApi = async (res: ServerResponse, url: URL): Promise<void> => {
 
   try {
     const player = buildPlayer(await rawProfileFor(username, token, store), config.title);
+    // The configurator previews the Arsenal with the logos picked so far.
+    const arsenal = q.get('arsenal');
+    if (widget === 'arsenal' && arsenal) {
+      const names = arsenal.split(',').map((x) => x.trim()).filter(Boolean).slice(0, 24);
+      player.extras = { ...extrasOf(player), arsenal: resolveArsenal(names, (slug) => slug in TECH_ICONS).items };
+    }
     if (widget === 'bento') return send(res, 200, 'image/svg+xml; charset=utf-8', await embedFonts(renderBento(player, config, mode).svg), 1800);
     const files = renderWidgets(player, config, mode, [widget]);
     const file = rune ? files.find((f) => f.name === widgetParam) : files[0];

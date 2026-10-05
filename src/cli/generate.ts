@@ -58,11 +58,12 @@ const main = async () => {
 
   console.log(`Awakening ${config.username} (layout ${layoutName(config.layout)}, theme ${config.theme}, activity ${config.activity}, motion ${config.motion})`);
   const raw = await fetchRawProfile(config.username, token!, { timeZone: config.timezone, commitHours: config.hours });
-  const player = buildPlayer(raw, config.title);
 
   // Extras: spotlight, feeds, quote of the day, and what changed since the last run.
   const snapshotPath = join(config.outDir, 'player.json');
   const previous = existsSync(snapshotPath) ? (JSON.parse(await readFile(snapshotPath, 'utf8')) as Snapshot) : null;
+  const player = buildPlayer(raw, config.title, previous?.quests ?? null, true);
+  if (player.quests) console.log(`Daily quests for ${player.quests.judged.date}: ${player.quests.judged.cleared}/${player.quests.judged.quests.length} cleared.`);
   const { extras } = config;
   const [spotlight, feed] = await Promise.all([
     fetchSpotlight(raw.login, token!, extras.spotlight).catch((err) => {
@@ -121,6 +122,7 @@ const main = async () => {
     stats: player.stats.map(({ code, value, rank, percentile }) => ({ code, value, rank, percentile })),
     events,
     achievements: player.achievements.map(({ id, tier, value }) => ({ id, tier, value })),
+    ...(player.questHistory ? { quests: player.questHistory } : previous?.quests ? { quests: previous.quests } : {}),
     syncedAt: raw.fetchedAt,
   };
   await writeFile(join(config.outDir, 'player.json'), JSON.stringify(summary, null, 2) + '\n');

@@ -163,7 +163,7 @@ One line in `awaken.json` arranges your whole README. Zero-config layouts need o
 | `contacts` | rune | Linked cards for your socials. |
 | `bio`, `career`, `board`, `oracle` | half | Character bio, career log, latest posts from your feeds, quote of the day. |
 | `cv` | rune | A linked download rune for your résumé. |
-| `achievements` | full | Equipped title and sixteen achievements with three tiers each. |
+| `achievements` | full | Equipped title and twenty-five achievements with three tiers each. |
 | `activity` | full | The last year as a game: ARISE or Dungeon Raid. |
 | `quest` | half | Your most recently pushed repository as the active quest. |
 | `skills` | half | Top languages by code size, with rune or logo icons. |
@@ -204,7 +204,9 @@ Commits are counted year by year from the contribution calendar, so forks and mi
 
 ## Achievements
 
-Each achievement has three tiers. Reaching tier I unlocks its title.
+Each achievement has three tiers. Reaching tier I unlocks its title. The daily quest titles count from your first Action run.
+
+**Daily quests:** one contribution a day plus two easy quests drawn for you (3 contributions, a commit, 2 repositories, a star, an issue, a 3-day streak…), graded the night after, and a weekly boss that falls after 4 active days.
 
 | Id | Achievement | Tiers |
 |---|---|---|
@@ -224,6 +226,15 @@ Each achievement has three tiers. Reaching tier I unlocks its title.
 | `veteran` | Veteran | 1 / 3 / 5 years on GitHub |
 | `berserker` | Berserker | 10 / 30 / 60 contributions in one day |
 | `diligent` | Diligent | 50 / 150 / 300 active days in a year |
+| `pull-shark` | Pull Shark | 2 / 16 / 128 pull requests merged |
+| `quickdraw` | Quickdraw | 1 / 5 / 25 pull requests or issues closed within 5 minutes of opening (last 100 of each) |
+| `yolo` | YOLO | 1 / 10 / 50 pull requests merged without a review (last 100) |
+| `daily-grinder` | Daily Grinder | 7 / 30 / 100 perfect days (every daily quest cleared) |
+| `perfect-week` | Perfect Week | 7 / 14 / 30 perfect days in a row |
+| `quest-hunter` | Quest Hunter | 50 / 250 / 1,000 daily quests cleared |
+| `boss-slayer` | Boss Slayer | 1 / 10 / 50 weekly bosses defeated |
+| `escape-artist` | Escape Artist | 3 / 10 / 25 escapes from the Penalty Zone the next day |
+| `collector` | Collector | 4 / 7 / 10 kinds of daily quest cleared |
 
 ## Themes
 

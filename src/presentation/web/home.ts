@@ -118,6 +118,7 @@ section{padding-block:88px 0}
 @media (max-width:960px){.config{grid-template-columns:1fr}}
 .config form .inner{padding:24px;display:flex;flex-direction:column;gap:20px}
 .field{display:flex;flex-direction:column;gap:8px}
+.field[hidden]{display:none}
 .field input,.field select{min-height:44px;padding:0 12px;background:var(--void);color:var(--ink);border:1px solid var(--line);font:500 15px/1 var(--fd)}
 .field input:focus,.field select:focus{border-color:var(--system)}
 .row{display:flex;gap:8px}
@@ -142,6 +143,18 @@ section{padding-block:88px 0}
 .code button{position:absolute;top:8px;right:8px;min-height:32px;padding:0 12px;border:0;background:var(--raised);color:var(--ink);box-shadow:inset 0 0 0 1px var(--frame);font:700 12px/1 var(--fd);letter-spacing:1px;text-transform:uppercase;cursor:pointer}
 .preview{display:flex;flex-direction:column;gap:12px;padding:20px;border-top:1px solid var(--line)}
 .preview .status{font:500 13px/1.4 var(--fm);color:var(--muted)}
+.preview .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.gh{padding:16px 12px;display:flex;flex-direction:column;gap:8px;background:#0d1117;border:1px solid #30363d;max-height:760px;overflow:auto}
+.gh.light{background:#ffffff;border-color:#d0d7de}
+.gh .who{font:600 13px/1 var(--fm);color:#8b949e;padding:0 4px 8px;border-bottom:1px solid #30363d}
+.gh.light .who{border-color:#d0d7de;color:#57606a}
+.pv-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.pv-row img{display:block;min-width:0}
+.pv-row .w-full{width:100%}.pv-row .w-half{width:calc(50% - 4px)}.pv-row .w-rune{width:calc(25% - 6px)}
+.ph{display:grid;place-items:center;padding:8px;text-align:center;border:1px dashed #3566b8;color:#8b949e;font:500 12px/1.35 var(--fm)}
+.ph.w-full{aspect-ratio:840/136}.ph.w-half{aspect-ratio:420/280}.ph.w-rune{aspect-ratio:200/56;font-size:10px}
+.ph b{display:block;color:#c9d1d9;font:600 12px/1.3 var(--fd)}
+.gh.light .ph b{color:#1f2328}
 `;
 
 const featureList = (items: string[]) => `<ul>${items.map((i) => `<li>${i}</li>`).join('')}</ul>`;
@@ -167,6 +180,20 @@ const layoutCards = LAYOUT_IDS.filter((id): id is Exclude<LayoutId, 'custom'> =>
   const zero = isBento(id) || LAYOUTS[id as keyof typeof LAYOUTS].zeroConfig;
   return `<div class="layout frame"><div class="inner"><h3>${escapeHtml(layoutName(id))}<span class="badge ${zero ? 'zero">ZERO CONFIG' : `needs">USES ${escapeHtml(LAYOUT_NEEDS[id] ?? '')}`}</span></h3><p>${LAYOUT_NOTES[id]}</p><code>"layout": "${id}"</code></div></div>`;
 }).join('');
+
+/** README widths for the preview: full lines, halves in pairs, runes four across. */
+const WIDGET_WIDTHS: Record<string, 'full' | 'half' | 'rune'> = Object.fromEntries(WIDGET_IDS.map((id) => [id,
+  ['web', 'quest', 'skills', 'contribution', 'combat', 'hours', 'daily', 'oracle', 'bio', 'career', 'board', 'spotlight'].includes(id) ? 'half'
+    : ['runes', 'contacts', 'cv'].includes(id) ? 'rune' : 'full']));
+const PLACEHOLDERS: Record<string, [string, string]> = {
+  levelup: ['Level Up', 'Shows on days something changed since the last run.'],
+  spotlight: ['Repo Spotlight', 'Your pinned repositories, drawn by the Action.'],
+  contacts: ['Contact', 'Add "socials".'],
+  bio: ['Character', 'Add "bio".'],
+  career: ['Career Log', 'Add "career".'],
+  cv: ['CV', 'Add "cv".'],
+  board: ['Quest Board', 'Add "feeds": a blog or YouTube channel.'],
+};
 
 /** What the Arsenal picker searches: every logo with its name and shelf. */
 const ARSENAL_CATALOG = Object.entries(TECH_ICONS).map(([slug, icon]) => [slug, icon.title, (TECH_CATEGORY_NAMES as readonly string[]).indexOf(icon.category)]);
@@ -241,9 +268,9 @@ ${segmented('Activity preview', [['arise', 'ARISE'], ['raid', 'Dungeon Raid']], 
 </div>
 
 <div class="feature">
-<div class="copy"><h3>Sixteen achievements, a title to wear</h3><p>Three tiers each, from Night Owl to Raider. Reach tier I and the title is yours to show under your name.</p>
-${featureList(['Earned from real behaviour: commit hours, streaks, merged pull requests', 'Locked badges show exactly how far away they are', 'Choose your title in one line of config'])}</div>
-<div class="ticks"><img src="/demo/achievements-dark.svg" width="840" height="444" alt="Achievements" loading="lazy"></div>
+<div class="copy"><h3>${ACHIEVEMENTS.length} achievements, a title to wear</h3><p>Three tiers each, from Night Owl to Pull Shark, plus titles you earn by clearing daily quests. Reach tier I and the title is yours to show under your name.</p>
+${featureList(['Earned from real behaviour: commit hours, streaks, merged pull requests, quests cleared', 'Locked badges show exactly how far away they are', 'Choose your title in one line of config'])}</div>
+<div class="ticks"><img src="/demo/achievements-dark.svg" width="840" alt="Achievements" loading="lazy"></div>
 </div>
 
 <div class="halves">
@@ -252,7 +279,7 @@ ${featureList(['Earned from real behaviour: commit hours, streaks, merged pull r
 <figure><img src="/demo/contribution-dark.svg" width="420" height="280" alt="" loading="lazy"><figcaption><b>Contribution log.</b> Streaks that do not break before the day ends.</figcaption></figure>
 <figure><img src="/demo/combat-dark.svg" width="420" height="280" alt="" loading="lazy"><figcaption><b>Combat record.</b> Raids into other people's repositories and more.</figcaption></figure>
 <figure><img src="/demo/hours-dark.svg" width="420" height="280" alt="" loading="lazy"><figcaption><b>Hunting hours.</b> When you actually commit, on a 24-hour clock.</figcaption></figure>
-<figure><img src="/demo/daily-dark.svg" width="420" height="280" alt="" loading="lazy"><figcaption><b>Daily quest.</b> Miss a day and you land in the Penalty Zone.</figcaption></figure>
+<figure><img src="/demo/daily-dark.svg" width="420" height="280" alt="" loading="lazy"><figcaption><b>Daily quest.</b> Three easy quests a day and a weekly boss. Miss a day and you land in the Penalty Zone.</figcaption></figure>
 <figure><img src="/demo/web-dark.svg" width="420" height="280" alt="" loading="lazy"><figcaption><b>Stat web.</b> Your six stats on the percentile scale.</figcaption></figure>
 <figure><img src="/demo/oracle-dark.svg" width="420" height="280" alt="" loading="lazy"><figcaption><b>Oracle scroll.</b> A quote of the day, or your own list.</figcaption></figure>
 </div>
@@ -330,9 +357,8 @@ ${THEME_PACKS.map((pack) => `<p class="pack">${escapeHtml(pack.name)}</p><div cl
 <div class="panel" role="tabpanel" id="panel-readme" aria-labelledby="tab-readme" hidden><p>Put these two lines where the widgets should appear in your <code>README.md</code>, then run the workflow once from the Actions tab.</p><div class="code"><pre id="out-readme"></pre><button type="button" data-copy="out-readme">Copy</button></div></div>
 <div class="panel" role="tabpanel" id="panel-url" aria-labelledby="tab-url" hidden><p>No Action: paste image links instead. Commit hours and the nightly snapshot are not available this way.</p><div class="code"><pre id="out-url"></pre><button type="button" data-copy="out-url">Copy</button></div></div>
 <div class="preview" aria-live="polite">
-<p class="status" id="preview-status">Preview of ${DEMO_USER}.</p>
-<img id="pv-hunter" alt="Hunter card preview" width="840" height="244">
-<img id="pv-activity" alt="Activity preview" width="840" height="268">
+<div class="bar"><p class="status" id="preview-status">Preview of ${DEMO_USER}.</p>${segmented('Preview mode', [['dark', 'GitHub dark'], ['light', 'GitHub light']], 'dark')}</div>
+<div class="gh" id="pv" aria-label="README preview"></div>
 </div>
 </div></div>
 </div>
@@ -349,6 +375,11 @@ const LAYOUT_WIDGETS = ${JSON.stringify(Object.fromEntries([...Object.entries(LA
 const LAYOUT_NEEDS = ${JSON.stringify(LAYOUT_NEEDS)};
 const ACTION_ONLY = ['levelup', 'spotlight', 'contacts', 'bio', 'career', 'cv', 'board'];
 const CATALOG = ${JSON.stringify(ARSENAL_CATALOG)};
+const LAYOUT_ROWS = ${JSON.stringify(Object.fromEntries([...Object.entries(LAYOUTS).map(([id, l]) => [id, l.rows]), ...Object.keys(BENTOS).map((id) => [id, [['bento']]])]))};
+const WIDTH = ${JSON.stringify(WIDGET_WIDTHS)};
+const PLACEHOLDER = ${JSON.stringify(PLACEHOLDERS)};
+const RUNES = ['str', 'agi', 'int', 'vit', 'luk', 'cha'];
+let previewMode = 'dark';
 const chosen = [];
 
 // Timezones: the browser's own list, the visitor's zone selected.
@@ -383,8 +414,8 @@ const drawArsenal = () => {
   const q = $('arsenal-q').value.trim().toLowerCase().replace(/\\s+/g, '');
   const cat = $('arsenal-cat').value;
   const hits = CATALOG.filter(([slug, title, c]) => !chosen.includes(slug) && (cat === '' || String(c) === cat) && (!q || slug.includes(q) || title.toLowerCase().replace(/\\s+/g, '').includes(q))).slice(0, 60);
-  $('arsenal-results').replaceChildren(...hits.map(([slug, title]) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = title; b.onclick = () => { if (chosen.length < 24) { chosen.push(slug); drawArsenal(); render(); } }; return b; }));
-  $('arsenal-chosen').replaceChildren(...chosen.map((slug) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = titleOf(slug); b.setAttribute('aria-label', 'Remove ' + titleOf(slug)); b.onclick = () => { chosen.splice(chosen.indexOf(slug), 1); drawArsenal(); render(); }; return b; }));
+  $('arsenal-results').replaceChildren(...hits.map(([slug, title]) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = title; b.onclick = () => { if (chosen.length < 24) { chosen.push(slug); drawArsenal(); render(); preview(); } }; return b; }));
+  $('arsenal-chosen').replaceChildren(...chosen.map((slug) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = titleOf(slug); b.setAttribute('aria-label', 'Remove ' + titleOf(slug)); b.onclick = () => { chosen.splice(chosen.indexOf(slug), 1); drawArsenal(); render(); preview(); }; return b; }));
 };
 $('arsenal-q').addEventListener('input', drawArsenal);
 $('arsenal-cat').addEventListener('change', drawArsenal);
@@ -414,20 +445,48 @@ const render = () => {
   $('out-url').textContent = list.map((w) => '![' + w + '](' + url(w) + ')').join('\\n');
 };
 
+// README preview: the chosen layout as GitHub will show it. Widgets that need awaken.json data or an
+// earlier run are drawn as outlines saying what to add.
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; };
 let previewTimer;
 const preview = () => {
   clearTimeout(previewTimer);
   previewTimer = setTimeout(() => {
     const v = values();
     if (!$('username').checkValidity()) { $('preview-status').textContent = 'That is not a GitHub username.'; return; }
-    const params = { username: v.username, theme: v.theme, activity: v.activity, icons: v.icons, motion: v.motion, title: v.title, timezone: v.timezone };
-    $('preview-status').textContent = 'Summoning ' + v.username + '… the first look at a new profile takes a few seconds.';
-    let pending = 2;
-    for (const [id, widget] of [['pv-hunter', 'hunter'], ['pv-activity', 'activity']]) {
-      const img = $(id);
-      img.onload = img.onerror = () => { if (--pending === 0) $('preview-status').textContent = 'Preview of ' + v.username + '.'; };
-      img.src = '/api?' + new URLSearchParams({ ...params, widget });
+    const params = { username: v.username, theme: v.theme, activity: v.activity, icons: v.icons, motion: v.motion, title: v.title, timezone: v.timezone, mode: previewMode };
+    const rows = v.layout === 'custom' ? v.widgets.map((w) => [w]) : LAYOUT_ROWS[v.layout];
+    const box = $('pv');
+    box.className = 'gh' + (previewMode === 'light' ? ' light' : '');
+    box.replaceChildren(el('div', 'who', v.username + ' / README.md'));
+    let pending = 0;
+    const done = () => { if (--pending === 0) $('preview-status').textContent = 'Preview of ' + v.username + ', layout ' + $('layout').selectedOptions[0].text + '.'; };
+    const image = (widget, extra, width) => {
+      const img = el('img', 'w-' + width);
+      img.alt = widget; img.decoding = 'async';
+      pending++;
+      img.onload = img.onerror = done;
+      img.src = '/api?' + new URLSearchParams({ ...params, widget, ...extra });
+      return img;
+    };
+    const holder = (widget, width) => {
+      const ph = el('div', 'ph w-' + width);
+      const [name, hint] = PLACEHOLDER[widget];
+      ph.append(el('span', '', ''));
+      ph.firstChild.append(el('b', '', name), document.createTextNode(hint));
+      return ph;
+    };
+    for (const ids of rows) {
+      const row = el('div', 'pv-row');
+      for (const id of ids) {
+        if (id === 'bento') row.append(image('bento', { layout: v.layout }, 'full'));
+        else if (id === 'runes') RUNES.forEach((r) => row.append(image('rune-' + r, {}, 'rune')));
+        else if (PLACEHOLDER[id]) (id === 'spotlight' ? [1, 2] : id === 'contacts' ? [1, 2, 3, 4] : [1]).forEach(() => row.append(holder(id, WIDTH[id])));
+        else row.append(image(id, id === 'arsenal' && chosen.length ? { arsenal: chosen.join(',') } : {}, WIDTH[id] || 'full'));
+      }
+      box.append(row);
     }
+    $('preview-status').textContent = 'Summoning ' + v.username + '… the first look at a new profile takes a few seconds.';
   }, 250);
 };
 
@@ -435,6 +494,7 @@ const preview = () => {
 document.querySelectorAll('[data-group]').forEach((b) => b.addEventListener('click', () => {
   const group = b.dataset.group;
   document.querySelectorAll('[data-group="' + group + '"]').forEach((x) => { x.setAttribute('aria-pressed', x === b); x.setAttribute('aria-checked', x === b); });
+  if (group === 'Preview mode') { previewMode = b.dataset.value; preview(); return; }
   if (group === 'Activity preview') {
     $('activity-img').src = b.dataset.value === 'raid' ? '/demo/raid-dark.svg' : '/demo/activity-dark.svg';
     $('activity-copy').textContent = b.dataset.value === 'raid'

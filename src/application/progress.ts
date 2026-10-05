@@ -1,4 +1,4 @@
-import type { ProgressEvent, RankGrade } from '../domain/types.js';
+import type { ProgressEvent, QuestHistory, RankGrade } from '../domain/types.js';
 
 /** What the previous run saved in player.json, as far as progress is concerned. */
 export interface Snapshot {
@@ -7,6 +7,8 @@ export interface Snapshot {
   stats: { code: string; rank: RankGrade }[];
   achievements: { id: string; tier: number }[];
   events?: ProgressEvent[];
+  /** Daily quest history, carried from run to run. */
+  quests?: QuestHistory;
 }
 
 const KEEP_DAYS = 7;

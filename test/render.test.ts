@@ -66,10 +66,17 @@ test('user text is escaped', () => {
 
 test('the daily widget switches to the Penalty Zone after a missed day', () => {
   const { config } = resolveConfig({ username: 'player-one' });
-  const missed = buildPlayer(rawProfile({ year: { ...rawProfile().year, calendar: calendar((i) => (i >= 364 ? 0 : 1)) } }), 'auto');
+  const days = rawProfile().days!;
+  const quiet = days.map((d, i) => (i < 2 ? { ...d, contributions: 0, commits: 0, repos: 0 } : d));
+  const missed = buildPlayer(rawProfile({ days: quiet }), 'auto');
   assert.match(renderWidgets(missed, config, 'dark', ['daily'])[0]!.svg, /PENALTY ZONE/);
-  const active = buildPlayer(rawProfile({ year: { ...rawProfile().year, calendar: calendar(() => 1) } }), 'auto');
-  assert.doesNotMatch(renderWidgets(active, config, 'dark', ['daily'])[0]!.svg, /PENALTY ZONE/);
+  const active = buildPlayer(rawProfile(), 'auto');
+  const svg = renderWidgets(active, config, 'dark', ['daily'])[0]!.svg;
+  assert.doesNotMatch(svg, /PENALTY ZONE/);
+  assert.match(svg, /WEEKLY BOSS/);
+  // Without day-by-day data the calendar still drives it.
+  const calendarOnly = buildPlayer(rawProfile({ days: null, year: { ...rawProfile().year, calendar: calendar((i) => (i >= 364 ? 0 : 1)) } }), 'auto');
+  assert.match(renderWidgets(calendarOnly, config, 'dark', ['daily'])[0]!.svg, /PENALTY ZONE/);
 });
 
 test('fonts are embedded and cut down to the glyphs in use', async () => {

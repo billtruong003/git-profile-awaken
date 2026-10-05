@@ -179,12 +179,20 @@ ${footer(ctx, p.raw.login, synced(p), W, H)}`;
 
 const PIP = 'M0 3 3 0 6 3 3 6Z';
 
+/** Why a badge cannot be measured, instead of looking locked. */
+const UNAVAILABLE: Record<string, string> = {
+  'night-owl': 'needs commit hours', 'early-bird': 'needs commit hours',
+  quickdraw: 'not fetched', yolo: 'not fetched',
+  'daily-grinder': 'counts with the Action', 'perfect-week': 'counts with the Action', 'quest-hunter': 'counts with the Action',
+  'boss-slayer': 'counts with the Action', 'escape-artist': 'counts with the Action', collector: 'counts with the Action',
+};
+
 const badge = (ctx: Ctx, a: Achievement, x: number, y: number, w: number): string => {
   const { t } = ctx;
   const earned = a.tier > 0;
   const tileStroke = a.tier >= 2 ? t.system : earned ? t.frame : t.line;
   const goal = a.goals[Math.min(a.tier, 2)]!;
-  const progress = !a.available ? 'needs commit hours' : a.tier === 3 ? `${fmt(a.value)} · MAX` : `${fmt(a.value)} / ${fmt(goal)}`;
+  const progress = !a.available ? UNAVAILABLE[a.id] ?? 'not measured yet' : a.tier === 3 ? `${fmt(a.value)} · MAX` : `${fmt(a.value)} / ${fmt(goal)}`;
   const pips = [0, 1, 2].map((i) => `<path transform="translate(${x + 17 + i * 10} ${y + 58})" d="${PIP}" fill="${i < a.tier ? t.system : t.line}"/>`).join('');
   const g = a.tier === 3 ? glow(ctx) : '';
   return `<g${a.tier === 3 ? ' class="pulse"' : ''}>
@@ -200,10 +208,10 @@ ${text(x + 60, y + 57, fit(a.unit.toUpperCase(), 'code', w - 70), 'code', t.mute
 };
 
 export const achievementsWidget = (ctx: Ctx, p: Player): Rendered => {
-  const W = 840, H = 444;
+  const cols = 4, gap = 10;
+  const W = 840, H = 56 + 52 + Math.ceil(p.achievements.length / cols) * 76 + 24;
   const { t } = ctx;
   const f = frame(ctx, W, H, 'ACHIEVEMENTS');
-  const cols = 4, gap = 10;
   const w = (f.w - gap * (cols - 1)) / cols;
   const unlocked = p.achievements.filter((a) => a.tier > 0).length;
   const g = glow(ctx, true);

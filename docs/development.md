@@ -41,9 +41,10 @@ src/
     arsenal.ts               technology names → logo slugs, monograms
     progress.ts              what changed since the last run (Level Up)
     quotes.ts                the bundled quotes and quote of the day
+    quests.ts                daily quests: the pool, the draw, grading, the weekly boss, history
     classes.ts               language → job class
     activity.ts              calendar → weeks, streaks, best week
-    achievements.ts          the sixteen achievements and title choice
+    achievements.ts          the achievements and title choice
     player.ts                RawProfile → Player
   config/                    awaken.json validation and defaults (config.ts, extras.ts)
   presentation/

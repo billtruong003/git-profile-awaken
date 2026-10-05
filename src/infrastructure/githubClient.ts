@@ -1,4 +1,4 @@
-import type { CalendarDay, LanguageShare, QuestInfo, Raid, RawProfile } from '../domain/types.js';
+import type { CalendarDay, DayLog, LanguageShare, QuestInfo, Raid, RawProfile } from '../domain/types.js';
 
 const ENDPOINT = 'https://api.github.com/graphql';
 const TIMEOUT_MS = 15_000;
@@ -268,6 +268,79 @@ const fetchQuest = async (token: string, login: string): Promise<QuestInfo | nul
   };
 };
 
+// ---------- day by day, for the daily quests ----------
+const DAY_COUNT = 9;
+
+const offsetMinutes = (timeZone: string, at: Date): number => {
+  const name = new Intl.DateTimeFormat('en-US', { timeZone, timeZoneName: 'longOffset' }).formatToParts(at).find((p) => p.type === 'timeZoneName')?.value ?? 'GMT';
+  const m = /GMT([+-])(\d{2}):(\d{2})/.exec(name);
+  return m ? (m[1] === '-' ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3])) : 0;
+};
+
+export const localDate = (at: Date, timeZone: string): string =>
+  new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(at);
+
+/** Today and the eight days before it in `timeZone`, as [date, start, end] with UTC instants. */
+export const dayWindows = (now: Date, timeZone: string): [string, string, string][] => {
+  const today = localDate(now, timeZone);
+  return Array.from({ length: DAY_COUNT }, (_, i) => {
+    const date = new Date(Date.parse(`${today}T00:00:00Z`) - i * 864e5).toISOString().slice(0, 10);
+    const startGuess = Date.parse(`${date}T00:00:00Z`);
+    const start = startGuess - offsetMinutes(timeZone, new Date(startGuess)) * 60_000;
+    const end = Math.min(start + 864e5 - 1000, now.getTime());
+    return [date, new Date(start).toISOString(), new Date(Math.max(start, end)).toISOString()];
+  });
+};
+
+type DayWindow = {
+  totalCommitContributions: number;
+  totalIssueContributions: number;
+  commitContributionsByRepository: { contributions: { totalCount: number } }[];
+  contributionCalendar: { totalContributions: number };
+};
+
+const fetchDays = async (login: string, token: string, timeZone: string, now: Date): Promise<DayLog[]> => {
+  const windows = dayWindows(now, timeZone);
+  const aliases = windows.map(([, from, to], i) => `d${i}: contributionsCollection(from: "${from}", to: "${to}") { totalCommitContributions totalIssueContributions commitContributionsByRepository(maxRepositories: 10) { contributions { totalCount } } contributionCalendar { totalContributions } }`);
+  const data = await graphql<{ user: (Record<string, DayWindow> & { starredRepositories: { edges: { starredAt: string }[] } }) | null }>(
+    token,
+    `query($login: String!) { user(login: $login) { ${aliases.join('\n')} starredRepositories(first: 50, orderBy: { field: STARRED_AT, direction: DESC }) { edges { starredAt } } } }`,
+    { login },
+  );
+  if (!data.user) return [];
+  const starDays = data.user.starredRepositories.edges.map((e) => localDate(new Date(e.starredAt), timeZone));
+  return windows.map(([date], i) => {
+    const w = data.user![`d${i}`] as DayWindow;
+    return {
+      date,
+      weekday: new Date(`${date}T00:00:00Z`).getUTCDay(),
+      contributions: w.contributionCalendar.totalContributions,
+      commits: w.totalCommitContributions,
+      repos: w.commitContributionsByRepository.filter((r) => r.contributions.totalCount > 0).length,
+      issues: w.totalIssueContributions,
+      stars: starDays.filter((d) => d === date).length,
+    };
+  });
+};
+
+/** Pull requests and issues closed within five minutes, and pull requests merged without a review, among the last 100 of each. */
+const fetchCloses = async (login: string, token: string) => {
+  type Node = { createdAt: string; closedAt: string | null; reviews?: { totalCount: number } };
+  const data = await graphql<{ user: { pullRequests: { nodes: Node[] }; issues: { nodes: Node[] } } | null }>(
+    token,
+    `query($login: String!) { user(login: $login) {
+      pullRequests(first: 100, states: MERGED, orderBy: { field: CREATED_AT, direction: DESC }) { nodes { createdAt closedAt reviews(first: 1) { totalCount } } }
+      issues(first: 100, states: CLOSED, orderBy: { field: CREATED_AT, direction: DESC }) { nodes { createdAt closedAt } }
+    } }`,
+    { login },
+  );
+  if (!data.user) return null;
+  const quick = (n: Node) => !!n.closedAt && Date.parse(n.closedAt) - Date.parse(n.createdAt) <= 5 * 60_000;
+  const prs = data.user.pullRequests.nodes;
+  const issues = data.user.issues.nodes;
+  return { quickdraws: prs.filter(quick).length + issues.filter(quick).length, unreviewedMerges: prs.filter((n) => (n.reviews?.totalCount ?? 0) === 0).length, sampled: prs.length + issues.length };
+};
+
 export interface FetchOptions {
   timeZone: string;
   commitHours: boolean;
@@ -283,6 +356,9 @@ export const fetchRawProfile = async (login: string, token: string, options: Fet
   const identityP = fetchIdentity(login, token);
   const lastYearP = graphql<LastYear>(token, LAST_YEAR_QUERY, { login });
   const questP = fetchQuest(token, login);
+  // Extras for the daily quests and the PR badges: a failure here leaves them out instead of failing the profile.
+  const daysP = fetchDays(login, token, options.timeZone, now).catch(() => null);
+  const closesP = fetchCloses(login, token).catch(() => null);
   const languagePages: Promise<LanguageBatch[]>[] = [];
   const listP = fetchRepoList(login, token, (page) => {
     languagePages.push(fetchLanguages(login, token, page.map((r) => r.name)));
@@ -299,7 +375,7 @@ export const fetchRawProfile = async (login: string, token: string, options: Fet
     })
     : Promise.resolve(null);
 
-  const [user, lastYear, { repos, total }, languages, lifetime, commitHours, quest] = await Promise.all([identityP, lastYearP, listP, languagesP, lifetimeP, hoursP, questP]);
+  const [user, lastYear, { repos, total }, languages, lifetime, commitHours, quest, days, closes] = await Promise.all([identityP, lastYearP, listP, languagesP, lifetimeP, hoursP, questP, daysP, closesP]);
   if (!lastYear.user) throw new GithubError(`No GitHub user named "${login}".`, 'not_found');
 
   const year = lastYear.user.contributionsCollection;
@@ -340,6 +416,8 @@ export const fetchRawProfile = async (login: string, token: string, options: Fet
     quest,
     raids: [...raidMap.values()],
     commitHours,
+    days: days?.length ? days : null,
+    closes,
     fetchedAt: now.toISOString(),
   };
 };
