@@ -89,3 +89,11 @@ test('config reports every invalid field', () => {
   assert.deepEqual(ok.problems, []);
   assert.equal(ok.config.activity, 'arise');
 });
+
+test('v1 widget URLs map onto the new widgets', async () => {
+  const { legacyWidget } = await import('../src/presentation/http/router.js');
+  assert.equal(legacyWidget('stat', 'AGI'), 'rune-agi');
+  assert.equal(legacyWidget('stat', null), 'rune-str');
+  assert.equal(legacyWidget('skill', null), 'skills');
+  assert.equal(legacyWidget('quest', null), 'quest');
+});

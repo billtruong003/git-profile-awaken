@@ -41,6 +41,13 @@ const send = (res: ServerResponse, status: number, type: string, body: string, m
 const sendError = (res: ServerResponse, status: number, title: string, detail: string) =>
   send(res, 200, 'image/svg+xml; charset=utf-8', buildErrorSvg(status, title, detail), 60);
 
+/** v1 URLs (widget=stat&target=STR, widget=skill) keep working in READMEs that still use them. */
+export const legacyWidget = (widget: string, target: string | null): string => {
+  if (widget === 'skill') return 'skills';
+  if (widget === 'stat') return `rune-${(target ?? 'str').toLowerCase()}`;
+  return widget;
+};
+
 const handleApi = async (res: ServerResponse, url: URL): Promise<void> => {
   const q = url.searchParams;
   const token = process.env.GITHUB_TOKEN;
@@ -49,7 +56,7 @@ const handleApi = async (res: ServerResponse, url: URL): Promise<void> => {
   const username = q.get('username') ?? '';
   if (!isValidGithubUsername(username)) return sendError(res, 400, 'Invalid player ID', 'Pass ?username= with a GitHub username.');
 
-  const widgetParam = q.get('widget') ?? 'status';
+  const widgetParam = legacyWidget(q.get('widget') ?? 'status', q.get('target'));
   const rune = /^rune-(str|agi|int|vit|luk|cha)$/.exec(widgetParam);
   const widget = (rune ? 'runes' : widgetParam) as WidgetId;
   if (!(WIDGET_IDS as readonly string[]).includes(widget)) return sendError(res, 400, 'Unknown widget', `Use one of: ${WIDGET_IDS.join(', ')}, rune-str…rune-cha.`);
