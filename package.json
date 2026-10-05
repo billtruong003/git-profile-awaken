@@ -1,22 +1,46 @@
 {
-  "name": "git-awaken",
-  "version": "1.1.0",
-  "description": "The System has chosen you. Transform your GitHub activity into a dynamic, Manhwa-inspired RPG status window.",
+  "name": "git-profile-awaken",
+  "version": "2.0.0",
+  "description": "Turn your GitHub profile into a LitRPG System window: ranks, achievements, titles and an animated shadow army, generated daily by a GitHub Action.",
   "main": "src/index.ts",
   "author": "BillTheDev",
   "scripts": {
-    "start": "tsx --env-file=.env src/index.ts",
-    "dev": "tsx --env-file=.env --watch src/index.ts",
-    "typecheck": "tsc --noEmit"
+    "start": "tsx --env-file-if-exists=.env src/index.ts",
+    "dev": "tsx --env-file-if-exists=.env --watch src/index.ts",
+    "generate": "tsx src/cli/generate.ts",
+    "test": "tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "vendor:icons": "node scripts/vendor-brand-icons.mjs",
+    "demo": "tsx scripts/demo.ts"
   },
   "type": "module",
   "license": "MIT",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "tsx": "^4.21.0",
+    "simple-icons": "^16.34.0",
     "typescript": "^5.5.0"
+  },
+  "dependencies": {
+    "@fontsource/chakra-petch": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "subset-font": "^2.9.0",
+    "tsx": "^4.21.0"
+  },
+  "keywords": [
+    "github-profile",
+    "readme",
+    "github-action",
+    "svg",
+    "rpg",
+    "solo-leveling",
+    "profile-readme",
+    "contribution-graph"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/billtruong003/git-profile-awaken.git"
   }
 }

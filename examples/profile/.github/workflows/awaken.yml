@@ -1,0 +1,27 @@
+name: Awaken
+
+on:
+  schedule:
+    # Once a day, a few minutes after midnight in your timezone (17:07 UTC is 00:07 in UTC+7).
+    - cron: "7 17 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [awaken.json]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: awaken
+  cancel-in-progress: true
+
+jobs:
+  awaken:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: billtruong003/git-profile-awaken@main
+        with:
+          # Optional: a fine-grained token with read access adds private contributions.
+          token: ${{ secrets.AWAKEN_TOKEN || github.token }}

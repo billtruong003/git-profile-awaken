@@ -1,94 +1,137 @@
-export type RankGrade = 'E' | 'D' | 'C' | 'B' | 'A' | 'S' | 'SS' | 'SSS' | 'EX';
+export const GRADES = ['E', 'D', 'C', 'B', 'A', 'S', 'SS', 'SSS', 'EX'] as const;
+export type RankGrade = (typeof GRADES)[number];
 
-export interface RpgStat {
-  code: string;
+export const STAT_CODES = ['STR', 'AGI', 'INT', 'VIT', 'LUK', 'CHA'] as const;
+export type StatCode = (typeof STAT_CODES)[number];
+
+export type ThemeMode = 'dark' | 'light';
+export type Motion = 'full' | 'calm' | 'none';
+export type ActivityStyle = 'arise' | 'raid';
+export type IconSet = 'rune' | 'brand';
+
+export const WIDGET_IDS = [
+  'hunter', 'status', 'quest', 'skills', 'contribution', 'runes',
+  'achievements', 'combat', 'hours', 'activity', 'daily',
+] as const;
+export type WidgetId = (typeof WIDGET_IDS)[number];
+
+export interface CalendarDay {
+  date: string;
+  count: number;
+  weekday: number;
+}
+
+export interface LanguageShare {
   name: string;
-  value: number;
-  grade: RankGrade;
-  progress: number;
   color: string;
+  percent: number;
 }
 
-export interface CharacterClass {
-  name: string;
-  element: string;
-  trait: string;
+export interface QuestInfo {
+  repo: string;
+  language: { name: string; color: string } | null;
+  createdAt: string;
+  pushedAt: string;
+  lastMessage: string;
+  commits: number;
 }
 
-export interface ActiveQuest {
-  title: string;
-  target: string;
+export interface Raid {
+  repo: string;
+  stars: number;
+  merged: number;
+}
+
+/** GitHub data, normalized, before any game rule is applied. */
+export interface RawProfile {
+  login: string;
+  name: string | null;
+  createdAt: string;
+  followers: number;
+  organizations: number;
+  ownedRepos: number;
+  stars: number;
+  pullRequests: number;
+  mergedPullRequests: number;
+  issues: number;
+  lifetimeCommits: number;
+  lifetimeReviews: number;
+  year: {
+    commits: number;
+    pullRequests: number;
+    reviews: number;
+    issues: number;
+    newRepos: number;
+    activeRepos: number;
+    calendar: CalendarDay[];
+  };
+  languages: LanguageShare[];
+  quest: QuestInfo | null;
+  raids: Raid[];
+  /** Commits per hour of day in the player's timezone, or null when not fetched. */
+  commitHours: number[] | null;
+  fetchedAt: string;
+}
+
+export interface Stat {
+  code: StatCode;
+  source: string;
+  value: number;
   rank: RankGrade;
-  status: string;
+  progress: number;
+  next: { rank: RankGrade; at: number } | null;
 }
 
-export interface ContributionAnalysis {
-  totalContributions: number;
-  dailyAverage: number;
+export interface Achievement {
+  id: string;
+  name: string;
+  title: string;
+  icon: string;
+  /** 0 = locked, 1..3 = tiers reached. */
+  tier: number;
+  value: number;
+  goals: readonly [number, number, number];
+  unit: string;
+  available: boolean;
+}
+
+export interface ActivitySummary {
+  weeks: CalendarDay[][];
+  total: number;
+  activeDays: number;
   currentStreak: number;
-  longestStreak: number;
-  bestWeekCount: number;
-  weeklyBreakdown: number[];
-  grade: RankGrade;
-  gradeColor: string;
-  gradeProgress: number;
+  bestStreak: number;
+  bestWeek: { index: number; start: string; count: number };
+  bestDay: { date: string; count: number };
+  mp14: number;
+  today: CalendarDay | null;
+  yesterday: CalendarDay | null;
+  /** Monday first. */
+  weekdayTotals: number[];
 }
 
-export interface CharacterProfile {
-  username: string;
-  isAdmin: boolean;
+export interface Player {
+  raw: RawProfile;
   level: number;
   exp: number;
   nextExp: number;
-  rank: RankGrade;
-  jobClass: CharacterClass;
-  stats: RpgStat[];
-  quest: ActiveQuest;
-  topLanguages: { name: string; color: string; percent: number }[];
-  mana: number;
-  contributions: ContributionAnalysis;
+  overall: RankGrade;
+  jobClass: { name: string; element: string; from: string | null };
+  stats: Stat[];
+  achievements: Achievement[];
+  equippedTitle: Achievement | null;
+  activity: ActivitySummary;
 }
 
-export interface ThemeConfig {
-  bg: string;
-  panel: string;
-  text: string;
-  textMuted: string;
-  primary: string;
-  secondary: string;
-  accent: string;
-  border: string;
-  rankColors: Record<RankGrade, string>;
-}
-
-export interface RawGithubData {
-  user: {
-    login: string;
-    followers: { totalCount: number };
-    pullRequests: { totalCount: number };
-    issues: { totalCount: number };
-    repositories: {
-      totalCount: number;
-      nodes: {
-        name: string;
-        stargazerCount: number;
-        pushedAt: string;
-        diskUsage: number;
-        defaultBranchRef: { target: { message: string } } | null;
-        languages: { edges: { size: number; node: { name: string; color: string } }[] };
-      }[];
-    };
-    repositoriesContributedTo: { totalCount: number };
-    contributionsCollection: {
-      contributionCalendar: {
-        totalContributions: number;
-        weeks: { contributionDays: { contributionCount: number; date: string }[] }[];
-      };
-    };
-  };
-}
-
-export interface CombinedGithubData {
-  graphql: RawGithubData;
-  allTimeCommits: number;
+export interface AwakenConfig {
+  username: string;
+  theme: string;
+  title: string;
+  activity: ActivityStyle;
+  icons: IconSet;
+  motion: Motion;
+  timezone: string;
+  widgets: WidgetId[];
+  outDir: string;
+  readme: string | null;
 }

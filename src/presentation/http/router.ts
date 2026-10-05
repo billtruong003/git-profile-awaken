@@ -1,158 +1,93 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import type { CharacterProfile, ThemeConfig } from '../../domain/types.js';
-import { fetchGithubData } from '../../infrastructure/githubClient.js';
+import { WIDGET_IDS, type Player, type WidgetId } from '../../domain/types.js';
+import { buildPlayer } from '../../application/player.js';
+import { resolveConfig, type FileConfig } from '../../config/config.js';
+import { embedFonts } from '../../infrastructure/fonts.js';
+import { fetchRawProfile, GithubError } from '../../infrastructure/githubClient.js';
 import { isValidGithubUsername } from '../../infrastructure/sanitizer.js';
-import { processProfileData } from '../../application/dataProcessor.js';
-import { resolveTheme, AVAILABLE_THEME_NAMES } from '../theme/themes.js';
-import { buildStatusWindow, buildQuestWidget, buildSkillWidget, buildSingleStatWidget, buildContributionWidget } from '../svg/widgetBuilders.js';
 import { buildErrorSvg } from '../svg/errorSvg.js';
+import { THEME_IDS } from '../theme/themes.js';
+import { renderWidgets } from '../widgets/index.js';
 import { getSystemUiHtml } from './uiView.js';
 
-const VALID_WIDGETS = ['status', 'quest', 'skill', 'stat', 'contribution'] as const;
-type WidgetType = (typeof VALID_WIDGETS)[number];
-type WidgetBuilder = (profile: CharacterProfile, theme: ThemeConfig, target: string | null) => string;
+const PLAYER_TTL_MS = 10 * 60 * 1000;
+const MAX_ENTRIES = 500;
+const players = new Map<string, { at: number; player: Promise<Player> }>();
 
-const SVG_FRESH_SECONDS = 1800;
-const SVG_STALE_REVALIDATE_SECONDS = 86400;
-const ERROR_FRESH_SECONDS = 60;
-const ERROR_STALE_REVALIDATE_SECONDS = 300;
-
-const WIDGET_BUILDERS: Record<WidgetType, WidgetBuilder> = {
-  status: (profile, theme) => buildStatusWindow(profile, theme),
-  quest: (profile, theme) => buildQuestWidget(profile, theme),
-  skill: (profile, theme) => buildSkillWidget(profile, theme),
-  stat: (profile, theme, target) => buildSingleStatWidget(profile, theme, target),
-  contribution: (profile, theme) => buildContributionWidget(profile, theme),
+/**
+ * The hosted endpoint skips commit hours (the most expensive query); the GitHub Action fetches them.
+ * One fetch per user is shared by every widget request in the cache window.
+ */
+const playerFor = (username: string, token: string, title: string): Promise<Player> => {
+  const key = `${username.toLowerCase()}|${title}`;
+  const hit = players.get(key);
+  if (hit && Date.now() - hit.at < PLAYER_TTL_MS) return hit.player;
+  const player = fetchRawProfile(username, token, { timeZone: 'UTC', commitHours: false }).then((raw) => buildPlayer(raw, title));
+  player.catch(() => players.delete(key));
+  if (players.size >= MAX_ENTRIES) players.delete(players.keys().next().value!);
+  players.set(key, { at: Date.now(), player });
+  return player;
 };
 
-const setCacheHeaders = (res: ServerResponse, freshSeconds: number, staleSeconds: number): void => {
-  res.setHeader('Cache-Control', `public, max-age=${Math.min(freshSeconds, 300)}`);
-  res.setHeader(
-    'Vercel-CDN-Cache-Control',
-    `public, s-maxage=${freshSeconds}, stale-while-revalidate=${staleSeconds}`,
-  );
-};
-
-const sendSvg = (res: ServerResponse, svg: string, isError: boolean): void => {
-  res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
+const send = (res: ServerResponse, status: number, type: string, body: string, maxAge: number) => {
+  res.setHeader('Content-Type', type);
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Vary', 'Accept-Encoding');
-
-  if (isError) {
-    setCacheHeaders(res, ERROR_FRESH_SECONDS, ERROR_STALE_REVALIDATE_SECONDS);
-  } else {
-    setCacheHeaders(res, SVG_FRESH_SECONDS, SVG_STALE_REVALIDATE_SECONDS);
-  }
-
-  res.writeHead(200);
-  res.end(svg);
+  res.setHeader('Cache-Control', `public, max-age=${Math.min(maxAge, 300)}`);
+  res.setHeader('CDN-Cache-Control', `public, s-maxage=${maxAge}, stale-while-revalidate=86400`);
+  res.writeHead(status);
+  res.end(body);
 };
 
-const sendErrorSvg = (res: ServerResponse, errorCode: number, title: string, detail: string): void => {
-  sendSvg(res, buildErrorSvg(errorCode, title, detail), true);
-};
+const sendError = (res: ServerResponse, status: number, title: string, detail: string) =>
+  send(res, 200, 'image/svg+xml; charset=utf-8', buildErrorSvg(status, title, detail), 60);
 
-const sendJson = (res: ServerResponse, statusCode: number, data: unknown): void => {
-  res.setHeader('Content-Type', 'application/json');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.writeHead(statusCode);
-  res.end(JSON.stringify(data));
-};
-
-const handleUI = (_req: IncomingMessage, res: ServerResponse): void => {
-  res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.writeHead(200);
-  res.end(getSystemUiHtml());
-};
-
-const handleHealthCheck = (_req: IncomingMessage, res: ServerResponse): void => {
-  sendJson(res, 200, {
-    status: 'operational',
-    system: 'Git Profile Awaken',
-    timestamp: new Date().toISOString(),
-    availableThemes: AVAILABLE_THEME_NAMES.length,
-  });
-};
-
-const handleThemeList = (_req: IncomingMessage, res: ServerResponse): void => {
-  sendJson(res, 200, { themes: AVAILABLE_THEME_NAMES });
-};
-
-const classifyError = (message: string): { code: number; title: string } => {
-  if (message.includes('Could not resolve to a User')) return { code: 404, title: 'Hunter Not Found' };
-  if (message.includes('rate limit')) return { code: 429, title: 'Mana Depleted' };
-  if (message.includes('Invalid GitHub token')) return { code: 401, title: 'Authentication Failed' };
-  return { code: 500, title: 'System Anomaly Detected' };
-};
-
-const handleApiRequest = async (res: ServerResponse, url: URL): Promise<void> => {
-  const username = url.searchParams.get('username');
-  const themeName = url.searchParams.get('theme');
-  const widgetParam = url.searchParams.get('widget') || 'status';
-  const target = url.searchParams.get('target');
-  const mode = url.searchParams.get('mode');
+const handleApi = async (res: ServerResponse, url: URL): Promise<void> => {
+  const q = url.searchParams;
   const token = process.env.GITHUB_TOKEN;
+  if (!token) return sendError(res, 500, 'System token missing', 'GITHUB_TOKEN is not set on this server.');
 
-  if (!token) {
-    sendErrorSvg(res, 500, 'System Token Missing', 'GITHUB_TOKEN environment variable is not configured.');
-    return;
-  }
+  const username = q.get('username') ?? '';
+  if (!isValidGithubUsername(username)) return sendError(res, 400, 'Invalid player ID', 'Pass ?username= with a GitHub username.');
 
-  if (!username) {
-    sendErrorSvg(res, 400, 'Player ID Required', 'Provide ?username=<github_username> to summon a hunter.');
-    return;
-  }
+  const widgetParam = q.get('widget') ?? 'status';
+  const rune = /^rune-(str|agi|int|vit|luk|cha)$/.exec(widgetParam);
+  const widget = (rune ? 'runes' : widgetParam) as WidgetId;
+  if (!(WIDGET_IDS as readonly string[]).includes(widget)) return sendError(res, 400, 'Unknown widget', `Use one of: ${WIDGET_IDS.join(', ')}, rune-str…rune-cha.`);
 
-  if (!isValidGithubUsername(username)) {
-    sendErrorSvg(res, 400, 'Invalid Player ID', `"${username.substring(0, 20)}" is not a valid GitHub username format.`);
-    return;
-  }
-
-  const widget: WidgetType = VALID_WIDGETS.includes(widgetParam as WidgetType)
-    ? (widgetParam as WidgetType)
-    : 'status';
+  const options = Object.fromEntries(
+    ['theme', 'title', 'activity', 'icons', 'motion', 'timezone'].flatMap((k) => (q.get(k) ? [[k, q.get(k)]] : [])),
+  ) as FileConfig;
+  const { config } = resolveConfig({ ...options, username });
+  const mode = q.get('mode') === 'light' ? 'light' : 'dark';
 
   try {
-    const theme = resolveTheme(themeName);
-    const rawData = await fetchGithubData(username, token);
-    const profile = processProfileData(rawData, mode, theme);
-    const svgOutput = WIDGET_BUILDERS[widget](profile, theme, target);
-
-    sendSvg(res, svgOutput, false);
+    const player = await playerFor(username, token, config.title);
+    const files = renderWidgets(player, config, mode, [widget]);
+    const file = rune ? files.find((f) => f.name === widgetParam) : files[0];
+    if (!file) return sendError(res, 400, 'Unknown widget', widgetParam);
+    send(res, 200, 'image/svg+xml; charset=utf-8', await embedFonts(file.svg), 1800);
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown system failure';
-    const { code, title } = classifyError(message);
-
-    if (code === 404) {
-      sendErrorSvg(res, 404, title, `No hunter registered under "${username}" in the System.`);
-      return;
+    if (err instanceof GithubError) {
+      const status = { not_found: 404, auth: 401, rate_limit: 429, upstream: 500 }[err.code];
+      return sendError(res, status, err.code === 'not_found' ? 'Hunter not found' : 'System anomaly', err.message);
     }
-
-    sendErrorSvg(res, code, title, message.substring(0, 120));
+    console.error(err);
+    sendError(res, 500, 'System anomaly', 'Something failed while drawing this widget.');
   }
-};
-
-const handleNotFound = (res: ServerResponse): void => {
-  sendJson(res, 404, {
-    error: 'Route not found',
-    availableRoutes: ['GET /', 'GET /api', 'GET /health', 'GET /themes'],
-  });
 };
 
 export const handleRequest = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
-  if (!req.url) return;
-
-  try {
-    const url = new URL(req.url, 'http://localhost');
-    const pathname = url.pathname;
-
-    if (pathname === '/') return handleUI(req, res);
-    if (pathname === '/health' || pathname === '/ping') return handleHealthCheck(req, res);
-    if (pathname === '/themes') return handleThemeList(req, res);
-    if (pathname === '/api') return handleApiRequest(res, url);
-
-    return handleNotFound(res);
-  } catch {
-    sendErrorSvg(res, 500, 'Gateway Collapse', 'An unexpected system failure occurred.');
+  const url = new URL(req.url ?? '/', 'http://localhost');
+  switch (url.pathname) {
+    case '/':
+      return send(res, 200, 'text/html; charset=utf-8', getSystemUiHtml(), 300);
+    case '/health':
+      return send(res, 200, 'application/json', JSON.stringify({ status: 'operational', themes: THEME_IDS.length }), 0);
+    case '/themes':
+      return send(res, 200, 'application/json', JSON.stringify({ themes: THEME_IDS }), 3600);
+    case '/api':
+      return handleApi(res, url);
+    default:
+      return send(res, 404, 'application/json', JSON.stringify({ error: 'Not found', routes: ['/', '/api', '/health', '/themes'] }), 60);
   }
 };

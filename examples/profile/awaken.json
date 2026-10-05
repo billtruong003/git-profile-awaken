@@ -1,0 +1,11 @@
+{
+  "username": "billtruong003",
+  "theme": "solo_leveling",
+  "title": "night-owl",
+  "activity": "arise",
+  "icons": "rune",
+  "motion": "full",
+  "timezone": "Asia/Ho_Chi_Minh",
+  "hours": true,
+  "widgets": ["hunter", "status", "achievements", "activity", "quest", "skills", "contribution", "combat", "hours", "daily", "runes"]
+}

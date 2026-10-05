@@ -1,210 +1,277 @@
-import type { RawGithubData, CombinedGithubData } from '../domain/types.js';
+import type { CalendarDay, LanguageShare, QuestInfo, Raid, RawProfile } from '../domain/types.js';
 
-const API_TIMEOUT_MS = 10_000;
-const PROFILE_CACHE_TTL_MS = 5 * 60 * 1_000;
-const COMMIT_COUNT_CACHE_TTL_MS = 60 * 60 * 1_000;
-const REFRESH_THROTTLE_MS = 5_000;
-const MAX_CACHE_ENTRIES = 500;
-const RETRY_DELAY_MS = 600;
-const RETRY_STATUS_CODES = new Set([502, 503, 504]);
+const ENDPOINT = 'https://api.github.com/graphql';
+const TIMEOUT_MS = 15_000;
+const MAX_REPO_PAGES = 10;
+const HOUR_REPOS = 25;
+const HOUR_BATCH = 5;
 
-const buildUserProfileQuery = (username: string) => ({
-  query: `
-    query userInfo($login: String!) {
-      user(login: $login) {
-        login
-        followers { totalCount }
-        pullRequests(first: 1) { totalCount }
-        issues(first: 1) { totalCount }
-        repositories(first: 100, ownerAffiliations: OWNER, isFork: false, orderBy: {field: PUSHED_AT, direction: DESC}) {
-          totalCount
-          nodes {
-            name
-            stargazerCount
-            pushedAt
-            diskUsage
-            defaultBranchRef { target { ... on Commit { message } } }
-            languages(first: 10, orderBy: {field: SIZE, direction: DESC}) { edges { size node { name color } } }
-          }
-        }
-        repositoriesContributedTo(contributionTypes: [COMMIT, ISSUE, PULL_REQUEST, REPOSITORY]) { totalCount }
-        contributionsCollection { contributionCalendar { totalContributions weeks { contributionDays { contributionCount date } } } }
-      }
-    }
-  `,
-  variables: { login: username },
-});
-
-const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
-
-const parseApiError = (status: number): string => {
-  if (status === 401) return 'Invalid GitHub token. Check GITHUB_TOKEN configuration.';
-  if (status === 403) return 'GitHub API rate limit exceeded. Retry in a few minutes.';
-  if (status >= 500) return `GitHub server error (${status}). Retry shortly.`;
-  return `GitHub API responded with status ${status}.`;
-};
-
-const fetchGraphqlProfile = async (username: string, token: string, attempt = 0): Promise<RawGithubData> => {
-  let response: Response;
-
-  try {
-    response = await fetch('https://api.github.com/graphql', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildUserProfileQuery(username)),
-      signal: AbortSignal.timeout(API_TIMEOUT_MS),
-    });
-  } catch (err) {
-    if (err instanceof DOMException && err.name === 'TimeoutError') {
-      if (attempt === 0) {
-        await delay(RETRY_DELAY_MS);
-        return fetchGraphqlProfile(username, token, 1);
-      }
-      throw new Error('GitHub API is responding slowly. Please retry in a moment.');
-    }
-    throw err;
+export class GithubError extends Error {
+  constructor(message: string, readonly code: 'not_found' | 'auth' | 'rate_limit' | 'upstream') {
+    super(message);
   }
-
-  if (!response.ok) {
-    if (attempt === 0 && RETRY_STATUS_CODES.has(response.status)) {
-      await delay(RETRY_DELAY_MS);
-      return fetchGraphqlProfile(username, token, 1);
-    }
-    throw new Error(parseApiError(response.status));
-  }
-
-  const payload = await response.json();
-
-  if (payload.errors) {
-    throw new Error(payload.errors[0]?.message ?? 'Unknown GraphQL error');
-  }
-
-  return payload.data;
-};
-
-const fetchLifetimeCommitCount = async (username: string, token: string): Promise<number> => {
-  try {
-    const response = await fetch(
-      `https://api.github.com/search/commits?q=author:${encodeURIComponent(username)}`,
-      {
-        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github.cloak-preview+json' },
-        signal: AbortSignal.timeout(API_TIMEOUT_MS),
-      },
-    );
-    if (!response.ok) return 0;
-    const data = await response.json();
-    return data.total_count || 0;
-  } catch {
-    return 0;
-  }
-};
-
-interface TimedEntry<T> {
-  data: T;
-  createdAt: number;
 }
 
-const profileCache = new Map<string, TimedEntry<CombinedGithubData>>();
-const commitCountCache = new Map<string, TimedEntry<number>>();
-const pendingFetches = new Map<string, Promise<CombinedGithubData>>();
-
-const evictMap = <T>(map: Map<string, TimedEntry<T>>, ttl: number): void => {
-  if (map.size <= MAX_CACHE_ENTRIES) return;
-
-  const now = Date.now();
-  const staleKeys: string[] = [];
-
-  for (const [key, entry] of map) {
-    if (now - entry.createdAt > ttl) {
-      staleKeys.push(key);
-    }
+const graphql = async <T>(token: string, query: string, variables: Record<string, unknown> = {}, attempt = 0): Promise<T> => {
+  let response: Response;
+  try {
+    response = await fetch(ENDPOINT, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'User-Agent': 'git-profile-awaken' },
+      body: JSON.stringify({ query, variables }),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+  } catch (err) {
+    if (attempt < 2) return graphql(token, query, variables, attempt + 1);
+    throw new GithubError(`GitHub did not answer: ${(err as Error).message}`, 'upstream');
   }
 
-  for (const key of staleKeys) {
-    map.delete(key);
-  }
+  if (response.status === 401) throw new GithubError('The GitHub token was rejected. Check the token you passed in.', 'auth');
+  if (response.status === 403 || response.status === 429) throw new GithubError('GitHub rate limit reached. Try again later.', 'rate_limit');
+  if (response.status >= 500 && attempt < 2) return graphql(token, query, variables, attempt + 1);
+  if (!response.ok) throw new GithubError(`GitHub answered ${response.status}.`, 'upstream');
 
-  if (map.size > MAX_CACHE_ENTRIES) {
-    const sortedEntries = Array.from(map.entries()).sort((a, b) => a[1].createdAt - b[1].createdAt);
-    const removeCount = map.size - MAX_CACHE_ENTRIES;
-    for (let i = 0; i < removeCount; i++) {
-      map.delete(sortedEntries[i]![0]);
-    }
+  const payload = (await response.json()) as { data?: T; errors?: { type?: string; message: string }[] };
+  const error = payload.errors?.[0];
+  if (error) {
+    throw new GithubError(error.message, error.type === 'NOT_FOUND' ? 'not_found' : 'upstream');
   }
+  return payload.data as T;
 };
 
-const getCachedCommitCount = (username: string): number | null => {
-  const cached = commitCountCache.get(username);
-  if (!cached) return null;
-  if (Date.now() - cached.createdAt > COMMIT_COUNT_CACHE_TTL_MS) return null;
-  return cached.data;
+interface RepoNode {
+  name: string;
+  stargazerCount: number;
+  pushedAt: string;
+  createdAt: string;
+  primaryLanguage: { name: string; color: string | null } | null;
+  languages: { edges: { size: number; node: { name: string; color: string | null } }[] };
+  defaultBranchRef: { target: { message?: string } } | null;
+}
+
+interface ProfileData {
+  user: {
+    id: string;
+    login: string;
+    name: string | null;
+    createdAt: string;
+    followers: { totalCount: number };
+    organizations: { totalCount: number };
+    pullRequests: { totalCount: number };
+    merged: { totalCount: number };
+    issues: { totalCount: number };
+    repositories: { totalCount: number; pageInfo: { hasNextPage: boolean; endCursor: string | null }; nodes: RepoNode[] };
+  } | null;
+}
+
+const PROFILE_QUERY = `
+query($login: String!, $after: String) {
+  user(login: $login) {
+    id login name createdAt
+    followers { totalCount }
+    organizations { totalCount }
+    pullRequests { totalCount }
+    merged: pullRequests(states: MERGED) { totalCount }
+    issues { totalCount }
+    repositories(first: 100, after: $after, ownerAffiliations: OWNER, isFork: false, orderBy: { field: PUSHED_AT, direction: DESC }) {
+      totalCount
+      pageInfo { hasNextPage endCursor }
+      nodes {
+        name stargazerCount pushedAt createdAt
+        primaryLanguage { name color }
+        languages(first: 10, orderBy: { field: SIZE, direction: DESC }) { edges { size node { name color } } }
+        defaultBranchRef { target { ... on Commit { message } } }
+      }
+    }
+  }
+}`;
+
+interface YearTotals {
+  totalCommitContributions: number;
+  totalPullRequestReviewContributions: number;
+}
+
+interface LastYear {
+  user: {
+    contributionsCollection: {
+      totalCommitContributions: number;
+      totalPullRequestContributions: number;
+      totalPullRequestReviewContributions: number;
+      totalIssueContributions: number;
+      totalRepositoryContributions: number;
+      commitContributionsByRepository: { repository: { name: string; owner: { login: string } }; contributions: { totalCount: number } }[];
+      contributionCalendar: { weeks: { contributionDays: { contributionCount: number; date: string; weekday: number }[] }[] };
+    };
+    raids: { nodes: { repository: { nameWithOwner: string; stargazerCount: number; owner: { login: string } } }[] };
+  };
+}
+
+const LAST_YEAR_QUERY = `
+query($login: String!) {
+  user(login: $login) {
+    contributionsCollection {
+      totalCommitContributions totalPullRequestContributions totalPullRequestReviewContributions
+      totalIssueContributions totalRepositoryContributions
+      commitContributionsByRepository(maxRepositories: 100) { repository { name owner { login } } contributions { totalCount } }
+      contributionCalendar { weeks { contributionDays { contributionCount date weekday } } }
+    }
+    raids: pullRequests(first: 100, states: MERGED, orderBy: { field: CREATED_AT, direction: DESC }) {
+      nodes { repository { nameWithOwner stargazerCount owner { login } } }
+    }
+  }
+}`;
+
+const fetchRepos = async (login: string, token: string) => {
+  let after: string | null = null;
+  let first: NonNullable<ProfileData['user']> | null = null;
+  const repos: RepoNode[] = [];
+  for (let page = 0; page < MAX_REPO_PAGES; page++) {
+    const data: ProfileData = await graphql<ProfileData>(token, PROFILE_QUERY, { login, after });
+    if (!data.user) throw new GithubError(`No GitHub user named "${login}".`, 'not_found');
+    first ??= data.user;
+    repos.push(...data.user.repositories.nodes);
+    if (!data.user.repositories.pageInfo.hasNextPage) break;
+    after = data.user.repositories.pageInfo.endCursor;
+  }
+  return { user: first!, repos };
 };
 
-const executeFetch = async (username: string, token: string): Promise<CombinedGithubData> => {
-  const cachedCommits = getCachedCommitCount(username);
+/** Every year since the account was created, one alias per year (a contributions window may not exceed a year). */
+const fetchLifetime = async (login: string, token: string, createdAt: string, now: Date) => {
+  const firstYear = new Date(createdAt).getUTCFullYear();
+  const aliases: string[] = [];
+  for (let year = firstYear; year <= now.getUTCFullYear(); year++) {
+    const to = year === now.getUTCFullYear() ? now.toISOString() : `${year}-12-31T23:59:59Z`;
+    aliases.push(`y${year}: contributionsCollection(from: "${year}-01-01T00:00:00Z", to: "${to}") { totalCommitContributions totalPullRequestReviewContributions }`);
+  }
+  const data = await graphql<{ user: Record<string, YearTotals> }>(token, `query($login: String!) { user(login: $login) { ${aliases.join('\n')} } }`, { login });
+  const years = Object.values(data.user);
+  return {
+    commits: years.reduce((sum, y) => sum + y.totalCommitContributions, 0),
+    reviews: years.reduce((sum, y) => sum + y.totalPullRequestReviewContributions, 0),
+  };
+};
 
-  if (cachedCommits !== null) {
-    const graphql = await fetchGraphqlProfile(username, token);
-    const graphqlTotal = graphql.user.contributionsCollection.contributionCalendar.totalContributions;
-    return { graphql, allTimeCommits: Math.max(cachedCommits, graphqlTotal) };
+const hourIn = (iso: string, timeZone: string): number =>
+  Number(new Intl.DateTimeFormat('en-US', { timeZone, hour: 'numeric', hourCycle: 'h23' }).format(new Date(iso)));
+
+/** Authored times of the player's commits in their busiest repositories over the last year. */
+const fetchCommitHours = async (token: string, userId: string, repos: { owner: string; name: string }[], since: string, timeZone: string) => {
+  const hours = Array<number>(24).fill(0);
+  for (let i = 0; i < repos.length; i += HOUR_BATCH) {
+    const batch = repos.slice(i, i + HOUR_BATCH);
+    const body = batch
+      .map((r, j) => `r${j}: repository(owner: ${JSON.stringify(r.owner)}, name: ${JSON.stringify(r.name)}) { defaultBranchRef { target { ... on Commit { history(first: 100, since: "${since}", author: { id: "${userId}" }) { nodes { authoredDate } } } } } }`)
+      .join('\n');
+    const data = await graphql<Record<string, { defaultBranchRef: { target: { history?: { nodes: { authoredDate: string }[] } } } | null } | null>>(token, `{ ${body} }`);
+    for (const repo of Object.values(data)) {
+      for (const commit of repo?.defaultBranchRef?.target.history?.nodes ?? []) hours[hourIn(commit.authoredDate, timeZone)]!++;
+    }
+  }
+  return hours;
+};
+
+/**
+ * The quest is the player's own most recently pushed repository, so every commit on it counts, even ones
+ * authored under an email that is not linked to the account.
+ */
+const fetchQuest = async (token: string, login: string, repo: RepoNode | undefined): Promise<QuestInfo | null> => {
+  if (!repo) return null;
+  const data = await graphql<{ repository: { defaultBranchRef: { target: { history?: { totalCount: number } } } | null } | null }>(
+    token,
+    `query($owner: String!, $name: String!, $since: GitTimestamp!) { repository(owner: $owner, name: $name) { defaultBranchRef { target { ... on Commit { history(since: $since) { totalCount } } } } } }`,
+    { owner: login, name: repo.name, since: repo.createdAt },
+  );
+  return {
+    repo: repo.name,
+    language: repo.primaryLanguage ? { name: repo.primaryLanguage.name, color: repo.primaryLanguage.color ?? '#888888' } : null,
+    createdAt: repo.createdAt,
+    pushedAt: repo.pushedAt,
+    lastMessage: repo.defaultBranchRef?.target.message?.split('\n')[0] ?? '',
+    commits: data.repository?.defaultBranchRef?.target.history?.totalCount ?? 0,
+  };
+};
+
+const languageShares = (repos: RepoNode[]): LanguageShare[] => {
+  const totals = new Map<string, { size: number; color: string }>();
+  let all = 0;
+  for (const repo of repos) {
+    for (const edge of repo.languages.edges) {
+      const entry = totals.get(edge.node.name) ?? { size: 0, color: edge.node.color ?? '#888888' };
+      entry.size += edge.size;
+      totals.set(edge.node.name, entry);
+      all += edge.size;
+    }
+  }
+  return [...totals.entries()]
+    .map(([name, { size, color }]) => ({ name, color, percent: all ? Math.round((size / all) * 1000) / 10 : 0 }))
+    .sort((a, b) => b.percent - a.percent)
+    .slice(0, 10);
+};
+
+export interface FetchOptions {
+  timeZone: string;
+  commitHours: boolean;
+  now?: Date;
+}
+
+export const fetchRawProfile = async (login: string, token: string, options: FetchOptions): Promise<RawProfile> => {
+  const now = options.now ?? new Date();
+  const { user, repos } = await fetchRepos(login, token);
+  const [lifetime, lastYear] = await Promise.all([
+    fetchLifetime(user.login, token, user.createdAt, now),
+    graphql<LastYear>(token, LAST_YEAR_QUERY, { login: user.login }),
+  ]);
+  const year = lastYear.user.contributionsCollection;
+  const calendar: CalendarDay[] = year.contributionCalendar.weeks.flatMap((w) =>
+    w.contributionDays.map((d) => ({ date: d.date, count: d.contributionCount, weekday: d.weekday })),
+  );
+
+  const raidMap = new Map<string, Raid>();
+  for (const pr of lastYear.user.raids.nodes) {
+    if (pr.repository.owner.login.toLowerCase() === user.login.toLowerCase()) continue;
+    const raid = raidMap.get(pr.repository.nameWithOwner) ?? { repo: pr.repository.nameWithOwner, stars: pr.repository.stargazerCount, merged: 0 };
+    raid.merged++;
+    raidMap.set(raid.repo, raid);
   }
 
-  const [graphqlResult, restResult] = await Promise.allSettled([
-    fetchGraphqlProfile(username, token),
-    fetchLifetimeCommitCount(username, token),
+  const oneYearAgo = new Date(now.getTime() - 365 * 864e5).toISOString();
+  const busiest = [...year.commitContributionsByRepository]
+    .sort((a, b) => b.contributions.totalCount - a.contributions.totalCount)
+    .slice(0, HOUR_REPOS)
+    .map((r) => ({ owner: r.repository.owner.login, name: r.repository.name }));
+
+  const [quest, commitHours] = await Promise.all([
+    fetchQuest(token, user.login, repos[0]),
+    options.commitHours ? fetchCommitHours(token, user.id, busiest, oneYearAgo, options.timeZone) : Promise.resolve(null),
   ]);
 
-  if (graphqlResult.status === 'rejected') {
-    throw graphqlResult.reason instanceof Error
-      ? graphqlResult.reason
-      : new Error(String(graphqlResult.reason));
-  }
-
-  const graphql = graphqlResult.value;
-  const restCount = restResult.status === 'fulfilled' ? restResult.value : 0;
-  const graphqlTotal = graphql.user.contributionsCollection.contributionCalendar.totalContributions;
-
-  if (restCount > 0) {
-    evictMap(commitCountCache, COMMIT_COUNT_CACHE_TTL_MS);
-    commitCountCache.set(username, { data: restCount, createdAt: Date.now() });
-  }
-
-  const allTimeCommits = restCount > 0 ? restCount : graphqlTotal;
-
-  return { graphql, allTimeCommits };
-};
-
-export const fetchGithubData = (
-  username: string,
-  token: string,
-  forceRefresh: boolean = false,
-): Promise<CombinedGithubData> => {
-  const now = Date.now();
-  const cached = profileCache.get(username);
-
-  if (cached) {
-    const age = now - cached.createdAt;
-    if (!forceRefresh && age < PROFILE_CACHE_TTL_MS) return Promise.resolve(cached.data);
-    if (forceRefresh && age < REFRESH_THROTTLE_MS) return Promise.resolve(cached.data);
-  }
-
-  const pending = pendingFetches.get(username);
-  if (pending) return pending;
-
-  const promise = executeFetch(username, token)
-    .then((result) => {
-      evictMap(profileCache, PROFILE_CACHE_TTL_MS);
-      profileCache.set(username, { data: result, createdAt: Date.now() });
-      pendingFetches.delete(username);
-      return result;
-    })
-    .catch((err) => {
-      pendingFetches.delete(username);
-      const stale = profileCache.get(username);
-      if (stale) return stale.data;
-      throw err;
-    });
-
-  pendingFetches.set(username, promise);
-  return promise;
+  return {
+    login: user.login,
+    name: user.name,
+    createdAt: user.createdAt,
+    followers: user.followers.totalCount,
+    organizations: user.organizations.totalCount,
+    ownedRepos: user.repositories.totalCount,
+    stars: repos.reduce((sum, r) => sum + r.stargazerCount, 0),
+    pullRequests: user.pullRequests.totalCount,
+    mergedPullRequests: user.merged.totalCount,
+    issues: user.issues.totalCount,
+    lifetimeCommits: lifetime.commits,
+    lifetimeReviews: lifetime.reviews,
+    year: {
+      commits: year.totalCommitContributions,
+      pullRequests: year.totalPullRequestContributions,
+      reviews: year.totalPullRequestReviewContributions,
+      issues: year.totalIssueContributions,
+      newRepos: year.totalRepositoryContributions,
+      activeRepos: year.commitContributionsByRepository.length,
+      calendar,
+    },
+    languages: languageShares(repos),
+    quest,
+    raids: [...raidMap.values()],
+    commitHours,
+    fetchedAt: now.toISOString(),
+  };
 };

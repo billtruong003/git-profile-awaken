@@ -15,5 +15,5 @@
     "moduleDetection": "force",
     "skipLibCheck": true
   },
-  "include": ["src/**/*", "api/**/*"]
+  "include": ["src/**/*", "api/**/*", "test/**/*", "scripts/**/*.ts"]
 }

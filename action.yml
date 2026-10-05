@@ -1,0 +1,63 @@
+name: Git Profile Awaken
+description: Turn your GitHub profile README into a LitRPG System window, regenerated on a schedule.
+author: BillTheDev
+branding:
+  icon: zap
+  color: blue
+
+inputs:
+  token:
+    description: Token used to read your GitHub data. The default token sees public activity; a fine-grained PAT with read access adds private contributions.
+    default: ${{ github.token }}
+  config:
+    description: Path to your awaken.json.
+    default: awaken.json
+  commit:
+    description: Commit and push the generated SVGs and README block.
+    default: 'true'
+  commit-message:
+    description: Message for that commit.
+    default: 'chore(awaken): sync the System [skip ci]'
+
+outputs:
+  out-dir:
+    description: Folder the SVGs were written to.
+    value: ${{ steps.awaken.outputs.out-dir }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+
+    - name: Install Awaken
+      shell: bash
+      run: npm ci --omit=dev --no-audit --no-fund --prefix "$GITHUB_ACTION_PATH"
+
+    - name: Awaken
+      id: awaken
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        AWAKEN_CONFIG: ${{ inputs.config }}
+      run: '"$GITHUB_ACTION_PATH/node_modules/.bin/tsx" "$GITHUB_ACTION_PATH/src/cli/generate.ts"'
+
+    - name: Commit
+      if: inputs.commit == 'true'
+      shell: bash
+      env:
+        OUT_DIR: ${{ steps.awaken.outputs.out-dir }}
+        README: ${{ steps.awaken.outputs.readme }}
+        MESSAGE: ${{ inputs.commit-message }}
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add -- "$OUT_DIR"
+        if [ -n "$README" ]; then git add -- "$README"; fi
+        if git diff --cached --quiet; then
+          echo "The System has nothing new to report."
+        else
+          git commit -m "$MESSAGE"
+          git push
+        fi
