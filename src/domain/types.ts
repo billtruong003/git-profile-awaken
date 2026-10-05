@@ -275,6 +275,8 @@ export interface AwakenConfig {
   timezone: string;
   /** README arrangement. "custom" stacks `widgets` in the order given. */
   layout: LayoutId;
+  /** Your own Bento rows (with "layout": "bento"): widget ids per row, every row scaled to fill the width. */
+  bento: WidgetId[][] | null;
   widgets: WidgetId[];
   outDir: string;
   readme: string | null;

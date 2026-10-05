@@ -110,6 +110,7 @@ Set `timezone` in `awaken.json` to the same zone. It decides which hour each com
 | `timezone` | `UTC` | An IANA zone such as `Europe/Berlin` or `Asia/Tokyo`. |
 | `hours` | `true` | Read your commit times. Needed for Hunting Hours, Night Owl and Early Bird. Turn it off to make runs faster. |
 | `layout` | `default` | How the README block is arranged. See [Layouts](#layouts). |
+| `bento` | | With `"layout": "bento"`: your own rows, e.g. `[["hunter"], ["bio", "career", "web"], ["activity", "oracle"]]`. Up to 10 rows of 1 to 4 widgets; each row is scaled to fill the width, so three tiles in a row draw smaller. |
 | `widgets` | | Only with `"layout": "custom"`: which widgets to draw, in README order. Giving `widgets` without a layout means `custom`, as in v2. |
 | `socials` | `[]` | Up to 12 `{ "type", "url", "label" }` links for Guild Contacts. `type` is a [simple-icons](https://simpleicons.org) slug (`youtube`, `x`, `discord`, `linkedin`…) or `website`, `email`, `codepen`, `link`. |
 | `banner` | auto | `{ "lines": [...], "style": "auto" }`. Up to 6 lines of 70 characters. `style` is `typewriter`, `glitch`, `system`, or `auto` (the layout decides). Without lines the banner greets you with your class and level. |

@@ -91,3 +91,16 @@ test('quote pools can be mixed with your own lines', async () => {
   assert.equal(resolveConfig({ username: 'player-one', quotes: ['funny'] }).problems.length, 1);
   assert.ok(DRY_QUOTES.length >= 40 && DRY_QUOTES.every((q) => q.text.length <= 160));
 });
+
+test('your own Bento rows are validated and drawn', async () => {
+  const { renderBento } = await import('../src/presentation/layouts.js');
+  const { buildPlayer } = await import('../src/application/player.js');
+  const { rawProfile } = await import('./fixture.js');
+  const ok = resolveConfig({ username: 'player-one', layout: 'bento', bento: [['hunter'], ['web', 'daily', 'oracle']] });
+  assert.deepEqual(ok.problems, []);
+  const short = renderBento(buildPlayer(rawProfile(), 'auto'), ok.config, 'dark');
+  const full = renderBento(buildPlayer(rawProfile(), 'auto'), resolveConfig({ username: 'player-one', layout: 'bento' }).config, 'dark');
+  assert.ok(short.height < full.height);
+  assert.equal(resolveConfig({ username: 'player-one', bento: [['hunter', 'nope']] }).problems.length, 1);
+  assert.equal(resolveConfig({ username: 'player-one', bento: [[]] }).problems.length, 1);
+});

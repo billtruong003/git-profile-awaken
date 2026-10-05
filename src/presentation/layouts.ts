@@ -41,7 +41,9 @@ export const isBento = (id: LayoutId): id is BentoLayout => id === 'bento' || id
 export const layoutName = (id: LayoutId): string => (id === 'custom' ? 'Custom' : isBento(id) ? BENTOS[id].name : LAYOUTS[id].name);
 
 /** The widget ids a layout draws, in order. */
-export const layoutWidgets = (id: LayoutId): WidgetId[] =>
+export const layoutWidgets = (id: LayoutId, custom: WidgetId[][] | null = null): WidgetId[] =>
+  custom && isBento(id) ? [...new Set(custom.flat())] : layoutWidgetsOf(id);
+const layoutWidgetsOf = (id: LayoutId): WidgetId[] =>
   id === 'custom' ? [] : [...new Set((isBento(id) ? BENTOS[id] : LAYOUTS[id]).rows.flat())];
 
 /** Splits images into README lines: full width alone, halves in pairs, runes and contacts four across. */
@@ -101,7 +103,8 @@ export const composeBento = (rows: Piece[][], title: string): Rendered => {
 export const renderBento = (p: Player, config: AwakenConfig, mode: ThemeMode): WidgetFile => {
   const ctx = contextFor(config, mode);
   const spec = BENTOS[isBento(config.layout) ? config.layout : 'bento'];
-  const rows = spec.rows.map((ids) => ids.flatMap((id) => renderPieces(id, ctx, p, config).slice(0, 1)));
+  // Your own rows when awaken.json has "bento"; a widget with several images (spotlight) brings all of them.
+  const rows = (config.bento ?? spec.rows).map((ids) => ids.flatMap((id) => renderPieces(id, ctx, p, config)));
   const rendered = composeBento(rows, `${p.raw.login}: ${spec.name.toLowerCase()} profile`);
   return { name: 'bento', widget: 'hunter', svg: toSvg(ctx, rendered), width: rendered.width, height: rendered.height };
 };

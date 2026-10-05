@@ -106,7 +106,7 @@ const main = async () => {
   }
   const darkFiles = darkRows.flat();
   const drawn = new Set(darkFiles.map((f) => f.widget));
-  const skipped = layoutWidgets(config.layout).filter((id) => !drawn.has(id) && id !== 'levelup');
+  const skipped = layoutWidgets(config.layout, config.bento).filter((id) => !drawn.has(id) && id !== 'levelup');
   if (skipped.length) console.log(`Left out until awaken.json has their data: ${skipped.join(', ')}.`);
 
   // Images from an earlier layout would linger in the folder; remove the ones this tool made and did not redraw.

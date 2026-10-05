@@ -4,8 +4,9 @@ import { THEME_IDS } from '../presentation/theme/themes.js';
 import { ACHIEVEMENTS } from '../application/achievements.js';
 import { EMPTY_EXTRAS, resolveExtras, type RawExtras } from './extras.js';
 
-export interface FileConfig extends Partial<Omit<AwakenConfig, 'widgets' | 'extras'>>, RawExtras {
+export interface FileConfig extends Partial<Omit<AwakenConfig, 'widgets' | 'extras' | 'bento'>>, RawExtras {
   widgets?: string[];
+  bento?: unknown;
   /** Fetch commit times for the Hunting Hours clock and the hour-based achievements. */
   hours?: boolean;
 }
@@ -19,6 +20,7 @@ export const DEFAULTS: AwakenConfig & { hours: boolean } = {
   motion: 'full',
   timezone: 'UTC',
   layout: 'default',
+  bento: null,
   widgets: ['hunter', 'status', 'achievements', 'activity', 'quest', 'skills', 'contribution', 'combat', 'hours', 'daily', 'runes'],
   outDir: 'awaken',
   readme: 'README.md',
@@ -40,6 +42,17 @@ const validTimeZone = (zone: string): boolean => {
   } catch {
     return false;
   }
+};
+
+const resolveBento = (value: unknown, problems: string[]): WidgetId[][] | null => {
+  if (value === undefined || value === null) return null;
+  const ok = Array.isArray(value) && value.length > 0 && value.length <= 10
+    && value.every((row) => Array.isArray(row) && row.length > 0 && row.length <= 4 && row.every((id) => (WIDGET_IDS as readonly unknown[]).includes(id)));
+  if (!ok) {
+    problems.push(`"bento" must be up to 10 rows of 1 to 4 widget ids, e.g. [["hunter"], ["bio", "career"]]. Known widgets: ${WIDGET_IDS.join(', ')}.`);
+    return null;
+  }
+  return value as WidgetId[][];
 };
 
 /** Merges file config over defaults and reports every invalid field at once instead of failing on the first. */
@@ -69,6 +82,7 @@ export const resolveConfig = (input: FileConfig): { config: AwakenConfig & { hou
     // A widget list without a layout keeps working the way it did before layouts existed.
     layout: oneOf(input.layout, LAYOUT_IDS, 'layout', problems) ?? (widgets?.length ? 'custom' : DEFAULTS.layout),
     widgets: widgets?.length ? widgets : DEFAULTS.widgets,
+    bento: resolveBento(input.bento, problems),
     outDir: input.outDir ?? DEFAULTS.outDir,
     readme: input.readme === null ? null : input.readme ?? DEFAULTS.readme,
     hours: input.hours ?? DEFAULTS.hours,
