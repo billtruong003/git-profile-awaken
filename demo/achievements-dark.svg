@@ -79,7 +79,7 @@
 <use href="#i-sword" x="647.5" y="128" width="20" height="20" fill="#3d8bff"/>
 <text x="687.5" y="130" class="strong" fill="#e6edf7">Relentless</text>
 <path transform="translate(644.5 166)" d="M0 3 3 0 6 3 3 6Z" fill="#3d8bff"/><path transform="translate(654.5 166)" d="M0 3 3 0 6 3 3 6Z" fill="#3d8bff"/><path transform="translate(664.5 166)" d="M0 3 3 0 6 3 3 6Z" fill="#1c2c4f"/>
-<text x="687.5" y="149" class="caption" fill="#e6edf7">1,182 / 5,000</text>
+<text x="687.5" y="149" class="caption" fill="#e6edf7">1,218 / 5,000</text>
 <text x="687.5" y="165" class="code" fill="#8a9bc0">COMMITS</text>
 </g>
 <g>
@@ -119,7 +119,7 @@
 <use href="#i-shield" x="647.5" y="204" width="20" height="20" fill="#e6edf7"/>
 <text x="687.5" y="206" class="strong" fill="#e6edf7">Weekend Warrior</text>
 <path transform="translate(644.5 242)" d="M0 3 3 0 6 3 3 6Z" fill="#3d8bff"/><path transform="translate(654.5 242)" d="M0 3 3 0 6 3 3 6Z" fill="#1c2c4f"/><path transform="translate(664.5 242)" d="M0 3 3 0 6 3 3 6Z" fill="#1c2c4f"/>
-<text x="687.5" y="225" class="caption" fill="#e6edf7">25 / 30</text>
+<text x="687.5" y="225" class="caption" fill="#e6edf7">23 / 30</text>
 <text x="687.5" y="241" class="code" fill="#8a9bc0">% ON WEEKENDS</text>
 </g>
 <g class="pulse">
@@ -129,7 +129,7 @@
 <use href="#i-gate" x="40" y="280" width="20" height="20" fill="#3d8bff"/>
 <text x="80" y="282" class="strong" fill="#e6edf7">Gate Opener</text>
 <path transform="translate(37 318)" d="M0 3 3 0 6 3 3 6Z" fill="#3d8bff"/><path transform="translate(47 318)" d="M0 3 3 0 6 3 3 6Z" fill="#3d8bff"/><path transform="translate(57 318)" d="M0 3 3 0 6 3 3 6Z" fill="#3d8bff"/>
-<text x="80" y="301" class="caption" fill="#e6edf7">56 · MAX</text>
+<text x="80" y="301" class="caption" fill="#e6edf7">54 · MAX</text>
 <text x="80" y="317" class="code" fill="#8a9bc0">REPOS THIS YEAR</text>
 </g>
 <g>
@@ -179,7 +179,7 @@
 <use href="#i-star" x="242.5" y="356" width="20" height="20" fill="#e6edf7"/>
 <text x="282.5" y="358" class="strong" fill="#e6edf7">Star Collector</text>
 <path transform="translate(239.5 394)" d="M0 3 3 0 6 3 3 6Z" fill="#3d8bff"/><path transform="translate(249.5 394)" d="M0 3 3 0 6 3 3 6Z" fill="#1c2c4f"/><path transform="translate(259.5 394)" d="M0 3 3 0 6 3 3 6Z" fill="#1c2c4f"/>
-<text x="282.5" y="377" class="caption" fill="#e6edf7">93 / 100</text>
+<text x="282.5" y="377" class="caption" fill="#e6edf7">96 / 100</text>
 <text x="282.5" y="393" class="code" fill="#8a9bc0">STARS</text>
 </g>
 <g>
@@ -229,7 +229,7 @@
 <use href="#i-calendar" x="445" y="432" width="20" height="20" fill="#e6edf7"/>
 <text x="485" y="434" class="strong" fill="#e6edf7">Diligent</text>
 <path transform="translate(442 470)" d="M0 3 3 0 6 3 3 6Z" fill="#3d8bff"/><path transform="translate(452 470)" d="M0 3 3 0 6 3 3 6Z" fill="#1c2c4f"/><path transform="translate(462 470)" d="M0 3 3 0 6 3 3 6Z" fill="#1c2c4f"/>
-<text x="485" y="453" class="caption" fill="#e6edf7">126 / 150</text>
+<text x="485" y="453" class="caption" fill="#e6edf7">127 / 150</text>
 <text x="485" y="469" class="code" fill="#8a9bc0">ACTIVE DAYS</text>
 </g>
 <g>
@@ -292,5 +292,5 @@
 <text x="80" y="605" class="caption" fill="#8a9bc0">counts with the Action</text>
 <text x="80" y="621" class="code" fill="#8a9bc0">QUEST KINDS</text>
 </g>
-<text x="820" y="646" class="code" fill="#8a9bc0" text-anchor="end">@billtruong003 · SYNCED 2026-10-05</text>
+<text x="820" y="646" class="code" fill="#8a9bc0" text-anchor="end">@billtruong003 · SYNCED 2026-10-06</text>
 </svg>
