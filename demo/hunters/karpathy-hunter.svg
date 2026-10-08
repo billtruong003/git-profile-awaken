@@ -44,7 +44,7 @@
 <path d="M28 72H96V140L88 148H20V80Z" fill="#07050f"/>
 <path d="M28.4 73H95V139.6L87.6 147H21V80.4Z" fill="none" stroke="#ff3d5e" stroke-width="2"/><path d="M29.5 76.5H91.5V138.5L86.5 143.5H24.5V81.5Z" fill="none" stroke="#ff3d5e" stroke-width="1"/>
 <text x="58" y="120.8" class="hero tight" fill="#ff3d5e" text-anchor="middle" style="font-size:30px">SSS</text>
-<clipPath id="fs214"><path d="M28 72H96V140L88 148H20V80Z"/></clipPath><g clip-path="url(#fs214)"><rect class="shine" x="-14.2" y="72" width="34.2" height="76" fill="url(#shine)" style="animation-duration:1.9s"/></g>
+<clipPath id="fs175"><path d="M28 72H96V140L88 148H20V80Z"/></clipPath><g clip-path="url(#fs175)"><rect class="shine" x="-14.2" y="72" width="34.2" height="76" fill="url(#shine)" style="animation-duration:1.9s"/></g>
 </g>
 <text x="58" y="168" class="caption" fill="#ece6ff" text-anchor="middle">TOP 0.3%</text>
 <text x="124" y="78" class="name" fill="#ece6ff">karpathy</text>
@@ -57,7 +57,7 @@
 <path d="M458 64H500V90L494 96H452V70Z" fill="#07050f"/>
 <path d="M458.4 65H499V89.6L493.6 95H453V70.4Z" fill="none" stroke="#ff3d5e" stroke-width="2"/><path d="M459.5 68.5H495.5V88.5L492.5 91.5H456.5V71.5Z" fill="none" stroke="#ff3d5e" stroke-width="1"/>
 <text x="476" y="87.2" class="rank tight" fill="#ff3d5e" text-anchor="middle">SSS</text>
-<clipPath id="fs215"><path d="M458 64H500V90L494 96H452V70Z"/></clipPath><g clip-path="url(#fs215)"><rect class="shine" x="430.4" y="64" width="21.6" height="32" fill="url(#shine)" style="animation-duration:1.9s"/></g>
+<clipPath id="fs176"><path d="M458 64H500V90L494 96H452V70Z"/></clipPath><g clip-path="url(#fs176)"><rect class="shine" x="430.4" y="64" width="21.6" height="32" fill="url(#shine)" style="animation-duration:1.9s"/></g>
 </g><text x="510" y="70" class="label" fill="#a397c7">STR</text><text x="510" y="88" class="value" fill="#ece6ff">2,922</text><text x="510" y="103" class="code" fill="#a397c7">TOP 0.4%</text>
 <g>
 <g class="fx-s" filter="url(#fx-blur)" opacity="0.75"><path d="M582.4 65H623V89.6L617.6 95H577V70.4Z" fill="none" stroke="#ffc53d" stroke-width="3"/></g>
@@ -85,14 +85,14 @@
 <path d="M582 128H624V154L618 160H576V134Z" fill="#07050f"/><clipPath id="sg308"><path d="M582 128H624V154L618 160H576V134Z"/></clipPath><g clip-path="url(#sg308)"><rect class="sweep" x="528" y="128" width="48" height="32" fill="url(#prism)"/></g>
 <path d="M582.4 129H623V153.6L617.6 159H577V134.4Z" fill="none" stroke="#f2fbff" stroke-width="2"/><path d="M583.5 132.5H619.5V152.5L616.5 155.5H580.5V135.5Z" fill="none" stroke="#f2fbff" stroke-width="1"/>
 <text x="600" y="151.2" class="rank" fill="#f2fbff" text-anchor="middle">EX</text>
-<clipPath id="fs216"><path d="M582 128H624V154L618 160H576V134Z"/></clipPath><g clip-path="url(#fs216)"><rect class="shine" x="554.4" y="128" width="21.6" height="32" fill="url(#shine)" style="animation-duration:2.4s"/></g><path class="spark" d="M581.8 122.6L584.6 125.4L581.8 128.2L579.0 125.4Z" fill="#f2fbff" style="animation-delay:0s"/><path class="spark" d="M620.2 131.0L623.0 133.8L620.2 136.6L617.4 133.8Z" fill="#f2fbff" style="animation-delay:0.6s"/><path class="spark" d="M579.8 152.7L582.6 155.5L579.8 158.3L577.0 155.5Z" fill="#f2fbff" style="animation-delay:1.2s"/><path class="spark" d="M613.4 157.8L616.2 160.6L613.4 163.4L610.6 160.6Z" fill="#f2fbff" style="animation-delay:1.8s"/>
-</g><text x="634" y="134" class="label" fill="#a397c7">LUK</text><text x="634" y="152" class="value" fill="#ece6ff">495.5k</text><text x="634" y="167" class="code" fill="#a397c7">TOP 0.01%</text>
+<clipPath id="fs177"><path d="M582 128H624V154L618 160H576V134Z"/></clipPath><g clip-path="url(#fs177)"><rect class="shine" x="554.4" y="128" width="21.6" height="32" fill="url(#shine)" style="animation-duration:2.4s"/></g><path class="spark" d="M581.8 122.6L584.6 125.4L581.8 128.2L579.0 125.4Z" fill="#f2fbff" style="animation-delay:0s"/><path class="spark" d="M620.2 131.0L623.0 133.8L620.2 136.6L617.4 133.8Z" fill="#f2fbff" style="animation-delay:0.6s"/><path class="spark" d="M579.8 152.7L582.6 155.5L579.8 158.3L577.0 155.5Z" fill="#f2fbff" style="animation-delay:1.2s"/><path class="spark" d="M613.4 157.8L616.2 160.6L613.4 163.4L610.6 160.6Z" fill="#f2fbff" style="animation-delay:1.8s"/>
+</g><text x="634" y="134" class="label" fill="#a397c7">LUK</text><text x="634" y="152" class="value" fill="#ece6ff">495.8k</text><text x="634" y="167" class="code" fill="#a397c7">TOP 0.01%</text>
 <g>
 <g class="fx-ex" filter="url(#fx-blur)" opacity="0.75"><path d="M706.4 129H747V153.6L741.6 159H701V134.4Z" fill="none" stroke="#f2fbff" stroke-width="3"/></g>
 <path d="M706 128H748V154L742 160H700V134Z" fill="#07050f"/><clipPath id="sg309"><path d="M706 128H748V154L742 160H700V134Z"/></clipPath><g clip-path="url(#sg309)"><rect class="sweep" x="652" y="128" width="48" height="32" fill="url(#prism)"/></g>
 <path d="M706.4 129H747V153.6L741.6 159H701V134.4Z" fill="none" stroke="#f2fbff" stroke-width="2"/><path d="M707.5 132.5H743.5V152.5L740.5 155.5H704.5V135.5Z" fill="none" stroke="#f2fbff" stroke-width="1"/>
 <text x="724" y="151.2" class="rank" fill="#f2fbff" text-anchor="middle">EX</text>
-<clipPath id="fs217"><path d="M706 128H748V154L742 160H700V134Z"/></clipPath><g clip-path="url(#fs217)"><rect class="shine" x="678.4" y="128" width="21.6" height="32" fill="url(#shine)" style="animation-duration:2.4s"/></g><path class="spark" d="M705.8 122.6L708.6 125.4L705.8 128.2L703.0 125.4Z" fill="#f2fbff" style="animation-delay:0s"/><path class="spark" d="M744.2 131.0L747.0 133.8L744.2 136.6L741.4 133.8Z" fill="#f2fbff" style="animation-delay:0.6s"/><path class="spark" d="M703.8 152.7L706.6 155.5L703.8 158.3L701.0 155.5Z" fill="#f2fbff" style="animation-delay:1.2s"/><path class="spark" d="M737.4 157.8L740.2 160.6L737.4 163.4L734.6 160.6Z" fill="#f2fbff" style="animation-delay:1.8s"/>
-</g><text x="758" y="134" class="label" fill="#a397c7">CHA</text><text x="758" y="152" class="value" fill="#ece6ff">224.8k</text><text x="758" y="167" class="code" fill="#a397c7">TOP 0.01%</text>
-<text x="820" y="226" class="code" fill="#a397c7" text-anchor="end">@karpathy · SYNCED 2026-10-07</text>
+<clipPath id="fs178"><path d="M706 128H748V154L742 160H700V134Z"/></clipPath><g clip-path="url(#fs178)"><rect class="shine" x="678.4" y="128" width="21.6" height="32" fill="url(#shine)" style="animation-duration:2.4s"/></g><path class="spark" d="M705.8 122.6L708.6 125.4L705.8 128.2L703.0 125.4Z" fill="#f2fbff" style="animation-delay:0s"/><path class="spark" d="M744.2 131.0L747.0 133.8L744.2 136.6L741.4 133.8Z" fill="#f2fbff" style="animation-delay:0.6s"/><path class="spark" d="M703.8 152.7L706.6 155.5L703.8 158.3L701.0 155.5Z" fill="#f2fbff" style="animation-delay:1.2s"/><path class="spark" d="M737.4 157.8L740.2 160.6L737.4 163.4L734.6 160.6Z" fill="#f2fbff" style="animation-delay:1.8s"/>
+</g><text x="758" y="134" class="label" fill="#a397c7">CHA</text><text x="758" y="152" class="value" fill="#ece6ff">225.0k</text><text x="758" y="167" class="code" fill="#a397c7">TOP 0.01%</text>
+<text x="820" y="226" class="code" fill="#a397c7" text-anchor="end">@karpathy · SYNCED 2026-10-08</text>
 </svg>
