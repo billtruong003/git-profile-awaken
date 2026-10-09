@@ -86,7 +86,7 @@
 <path d="M582.4 129H623V153.6L617.6 159H577V134.4Z" fill="none" stroke="#ff3d5e" stroke-width="2"/><path d="M583.5 132.5H619.5V152.5L616.5 155.5H580.5V135.5Z" fill="none" stroke="#ff3d5e" stroke-width="1"/>
 <text x="600" y="151.2" class="rank tight" fill="#ff3d5e" text-anchor="middle">SSS</text>
 <clipPath id="fs136"><path d="M582 128H624V154L618 160H576V134Z"/></clipPath><g clip-path="url(#fs136)"><rect class="shine" x="554.4" y="128" width="21.6" height="32" fill="url(#shine)" style="animation-duration:1.9s"/></g>
-</g><text x="634" y="134" class="label" fill="#ad7070">LUK</text><text x="634" y="152" class="value" fill="#ffcccc">143</text><text x="634" y="167" class="code" fill="#ad7070">TOP 0.2%</text>
+</g><text x="634" y="134" class="label" fill="#ad7070">LUK</text><text x="634" y="152" class="value" fill="#ffcccc">151</text><text x="634" y="167" class="code" fill="#ad7070">TOP 0.2%</text>
 <g>
 <g class="fx-s" filter="url(#fx-blur)" opacity="0.75"><path d="M706.4 129H747V153.6L741.6 159H701V134.4Z" fill="none" stroke="#ffc53d" stroke-width="3"/></g>
 <path d="M706 128H748V154L742 160H700V134Z" fill="#120404"/>
@@ -94,5 +94,5 @@
 <text x="724" y="151.2" class="rank" fill="#ffc53d" text-anchor="middle">S</text>
 
 </g><text x="758" y="134" class="label" fill="#ad7070">CHA</text><text x="758" y="152" class="value" fill="#ffcccc">17</text><text x="758" y="167" class="code" fill="#ad7070">TOP 5.7%</text>
-<text x="820" y="226" class="code" fill="#ad7070" text-anchor="end">@billtruong003 · SYNCED 2026-10-08</text>
+<text x="820" y="226" class="code" fill="#ad7070" text-anchor="end">@billtruong003 · SYNCED 2026-10-09</text>
 </svg>
