@@ -179,7 +179,7 @@
 <use href="#i-star" x="242.5" y="356" width="20" height="20" fill="#1f5fd6"/>
 <text x="282.5" y="358" class="strong" fill="#0d1830">Star Collector</text>
 <path transform="translate(239.5 394)" d="M0 3 3 0 6 3 3 6Z" fill="#1f5fd6"/><path transform="translate(249.5 394)" d="M0 3 3 0 6 3 3 6Z" fill="#1f5fd6"/><path transform="translate(259.5 394)" d="M0 3 3 0 6 3 3 6Z" fill="#d5deee"/>
-<text x="282.5" y="377" class="caption" fill="#0d1830">151 / 1,000</text>
+<text x="282.5" y="377" class="caption" fill="#0d1830">153 / 1,000</text>
 <text x="282.5" y="393" class="code" fill="#4a5a7c">STARS</text>
 </g>
 <g>
@@ -292,5 +292,5 @@
 <text x="80" y="605" class="caption" fill="#4a5a7c">counts with the Action</text>
 <text x="80" y="621" class="code" fill="#4a5a7c">QUEST KINDS</text>
 </g>
-<text x="820" y="646" class="code" fill="#4a5a7c" text-anchor="end">@billtruong003 · SYNCED 2026-10-09</text>
+<text x="820" y="646" class="code" fill="#4a5a7c" text-anchor="end">@billtruong003 · SYNCED 2026-10-10</text>
 </svg>
