@@ -229,7 +229,7 @@
 <use href="#i-calendar" x="445" y="432" width="20" height="20" fill="#0d1830"/>
 <text x="485" y="434" class="strong" fill="#0d1830">Diligent</text>
 <path transform="translate(442 470)" d="M0 3 3 0 6 3 3 6Z" fill="#1f5fd6"/><path transform="translate(452 470)" d="M0 3 3 0 6 3 3 6Z" fill="#d5deee"/><path transform="translate(462 470)" d="M0 3 3 0 6 3 3 6Z" fill="#d5deee"/>
-<text x="485" y="453" class="caption" fill="#0d1830">130 / 150</text>
+<text x="485" y="453" class="caption" fill="#0d1830">129 / 150</text>
 <text x="485" y="469" class="code" fill="#4a5a7c">ACTIVE DAYS</text>
 </g>
 <g>
@@ -292,5 +292,5 @@
 <text x="80" y="605" class="caption" fill="#4a5a7c">counts with the Action</text>
 <text x="80" y="621" class="code" fill="#4a5a7c">QUEST KINDS</text>
 </g>
-<text x="820" y="646" class="code" fill="#4a5a7c" text-anchor="end">@billtruong003 · SYNCED 2026-10-17</text>
+<text x="820" y="646" class="code" fill="#4a5a7c" text-anchor="end">@billtruong003 · SYNCED 2026-10-18</text>
 </svg>
