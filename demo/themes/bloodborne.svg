@@ -58,7 +58,7 @@
 <path d="M458.4 65H499V89.6L493.6 95H453V70.4Z" fill="none" stroke="#ffc53d" stroke-width="2"/><path d="M459.5 68.5H495.5V88.5L492.5 91.5H456.5V71.5Z" fill="none" stroke="#ffc53d" stroke-width="1"/>
 <text x="476" y="87.2" class="rank" fill="#ffc53d" text-anchor="middle">S</text>
 
-</g><text x="510" y="70" class="label" fill="#918282">STR</text><text x="510" y="88" class="value" fill="#d4c4c4">1,155</text><text x="510" y="103" class="code" fill="#918282">TOP 2.1%</text>
+</g><text x="510" y="70" class="label" fill="#918282">STR</text><text x="510" y="88" class="value" fill="#d4c4c4">1,156</text><text x="510" y="103" class="code" fill="#918282">TOP 2.1%</text>
 <g>
 
 <path d="M582 64H624V90L618 96H576V70Z" fill="#100b0b"/>
@@ -79,7 +79,7 @@
 <path d="M458.4 129H499V153.6L493.6 159H453V134.4Z" fill="none" stroke="#f2fbff" stroke-width="2"/><path d="M459.5 132.5H495.5V152.5L492.5 155.5H456.5V135.5Z" fill="none" stroke="#f2fbff" stroke-width="1"/>
 <text x="476" y="151.2" class="rank" fill="#f2fbff" text-anchor="middle">EX</text>
 <clipPath id="fs120"><path d="M458 128H500V154L494 160H452V134Z"/></clipPath><g clip-path="url(#fs120)"><rect class="shine" x="430.4" y="128" width="21.6" height="32" fill="url(#shine)" style="animation-duration:2.4s"/></g><path class="spark" d="M457.8 122.6L460.6 125.4L457.8 128.2L455.0 125.4Z" fill="#f2fbff" style="animation-delay:0s"/><path class="spark" d="M496.2 131.0L499.0 133.8L496.2 136.6L493.4 133.8Z" fill="#f2fbff" style="animation-delay:0.6s"/><path class="spark" d="M455.8 152.7L458.6 155.5L455.8 158.3L453.0 155.5Z" fill="#f2fbff" style="animation-delay:1.2s"/><path class="spark" d="M489.4 157.8L492.2 160.6L489.4 163.4L486.6 160.6Z" fill="#f2fbff" style="animation-delay:1.8s"/>
-</g><text x="510" y="134" class="label" fill="#918282">VIT</text><text x="510" y="152" class="value" fill="#d4c4c4">45</text><text x="510" y="167" class="code" fill="#918282">TOP 0.01%</text>
+</g><text x="510" y="134" class="label" fill="#918282">VIT</text><text x="510" y="152" class="value" fill="#d4c4c4">46</text><text x="510" y="167" class="code" fill="#918282">TOP 0.01%</text>
 <g>
 <g class="fx-sss" filter="url(#fx-blur)" opacity="0.75"><path d="M582.4 129H623V153.6L617.6 159H577V134.4Z" fill="none" stroke="#ff3d5e" stroke-width="3"/></g>
 <path d="M582 128H624V154L618 160H576V134Z" fill="#100b0b"/>
@@ -94,5 +94,5 @@
 <text x="724" y="151.2" class="rank" fill="#ffc53d" text-anchor="middle">S</text>
 
 </g><text x="758" y="134" class="label" fill="#918282">CHA</text><text x="758" y="152" class="value" fill="#d4c4c4">18</text><text x="758" y="167" class="code" fill="#918282">TOP 5.3%</text>
-<text x="820" y="226" class="code" fill="#918282" text-anchor="end">@billtruong003 · SYNCED 2026-10-21</text>
+<text x="820" y="226" class="code" fill="#918282" text-anchor="end">@billtruong003 · SYNCED 2026-10-22</text>
 </svg>
