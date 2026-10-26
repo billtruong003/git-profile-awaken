@@ -129,7 +129,7 @@
 <use href="#i-gate" x="40" y="280" width="20" height="20" fill="#1f5fd6"/>
 <text x="80" y="282" class="strong" fill="#0d1830">Gate Opener</text>
 <path transform="translate(37 318)" d="M0 3 3 0 6 3 3 6Z" fill="#1f5fd6"/><path transform="translate(47 318)" d="M0 3 3 0 6 3 3 6Z" fill="#1f5fd6"/><path transform="translate(57 318)" d="M0 3 3 0 6 3 3 6Z" fill="#1f5fd6"/>
-<text x="80" y="301" class="caption" fill="#0d1830">59 · MAX</text>
+<text x="80" y="301" class="caption" fill="#0d1830">57 · MAX</text>
 <text x="80" y="317" class="code" fill="#4a5a7c">REPOS THIS YEAR</text>
 </g>
 <g>
@@ -292,5 +292,5 @@
 <text x="80" y="605" class="caption" fill="#4a5a7c">counts with the Action</text>
 <text x="80" y="621" class="code" fill="#4a5a7c">QUEST KINDS</text>
 </g>
-<text x="820" y="646" class="code" fill="#4a5a7c" text-anchor="end">@billtruong003 · SYNCED 2026-10-25</text>
+<text x="820" y="646" class="code" fill="#4a5a7c" text-anchor="end">@billtruong003 · SYNCED 2026-10-26</text>
 </svg>
