@@ -49,7 +49,7 @@
 <use href="#i-fin" x="40" y="128" width="20" height="20" fill="#0d1830"/>
 <text x="80" y="130" class="strong" fill="#0d1830">Pull Shark</text>
 <path transform="translate(37 166)" d="M0 3 3 0 6 3 3 6Z" fill="#1f5fd6"/><path transform="translate(47 166)" d="M0 3 3 0 6 3 3 6Z" fill="#d5deee"/><path transform="translate(57 166)" d="M0 3 3 0 6 3 3 6Z" fill="#d5deee"/>
-<text x="80" y="149" class="caption" fill="#0d1830">15 / 16</text>
+<text x="80" y="149" class="caption" fill="#0d1830">13 / 16</text>
 <text x="80" y="165" class="code" fill="#4a5a7c">PRS MERGED</text>
 </g>
 <g>
@@ -59,7 +59,7 @@
 <use href="#i-bolt" x="242.5" y="128" width="20" height="20" fill="#1f5fd6"/>
 <text x="282.5" y="130" class="strong" fill="#0d1830">Quickdraw</text>
 <path transform="translate(239.5 166)" d="M0 3 3 0 6 3 3 6Z" fill="#1f5fd6"/><path transform="translate(249.5 166)" d="M0 3 3 0 6 3 3 6Z" fill="#1f5fd6"/><path transform="translate(259.5 166)" d="M0 3 3 0 6 3 3 6Z" fill="#d5deee"/>
-<text x="282.5" y="149" class="caption" fill="#0d1830">12 / 25</text>
+<text x="282.5" y="149" class="caption" fill="#0d1830">10 / 25</text>
 <text x="282.5" y="165" class="code" fill="#4a5a7c">CLOSED IN 5 MIN</text>
 </g>
 <g>
@@ -69,7 +69,7 @@
 <use href="#i-dice" x="445" y="128" width="20" height="20" fill="#1f5fd6"/>
 <text x="485" y="130" class="strong" fill="#0d1830">YOLO</text>
 <path transform="translate(442 166)" d="M0 3 3 0 6 3 3 6Z" fill="#1f5fd6"/><path transform="translate(452 166)" d="M0 3 3 0 6 3 3 6Z" fill="#1f5fd6"/><path transform="translate(462 166)" d="M0 3 3 0 6 3 3 6Z" fill="#d5deee"/>
-<text x="485" y="149" class="caption" fill="#0d1830">15 / 50</text>
+<text x="485" y="149" class="caption" fill="#0d1830">13 / 50</text>
 <text x="485" y="165" class="code" fill="#4a5a7c">MERGED, NO REVIEW</text>
 </g>
 <g>
@@ -79,7 +79,7 @@
 <use href="#i-sword" x="647.5" y="128" width="20" height="20" fill="#1f5fd6"/>
 <text x="687.5" y="130" class="strong" fill="#0d1830">Relentless</text>
 <path transform="translate(644.5 166)" d="M0 3 3 0 6 3 3 6Z" fill="#1f5fd6"/><path transform="translate(654.5 166)" d="M0 3 3 0 6 3 3 6Z" fill="#1f5fd6"/><path transform="translate(664.5 166)" d="M0 3 3 0 6 3 3 6Z" fill="#d5deee"/>
-<text x="687.5" y="149" class="caption" fill="#0d1830">1,158 / 5,000</text>
+<text x="687.5" y="149" class="caption" fill="#0d1830">1,153 / 5,000</text>
 <text x="687.5" y="165" class="code" fill="#4a5a7c">COMMITS</text>
 </g>
 <g>
@@ -99,7 +99,7 @@
 <use href="#i-moon" x="242.5" y="204" width="20" height="20" fill="#0d1830"/>
 <text x="282.5" y="206" class="strong" fill="#0d1830">Night Owl</text>
 <path transform="translate(239.5 242)" d="M0 3 3 0 6 3 3 6Z" fill="#1f5fd6"/><path transform="translate(249.5 242)" d="M0 3 3 0 6 3 3 6Z" fill="#d5deee"/><path transform="translate(259.5 242)" d="M0 3 3 0 6 3 3 6Z" fill="#d5deee"/>
-<text x="282.5" y="225" class="caption" fill="#0d1830">24 / 30</text>
+<text x="282.5" y="225" class="caption" fill="#0d1830">23 / 30</text>
 <text x="282.5" y="241" class="code" fill="#4a5a7c">% COMMITS 22–05H</text>
 </g>
 <g>
@@ -129,7 +129,7 @@
 <use href="#i-gate" x="40" y="280" width="20" height="20" fill="#1f5fd6"/>
 <text x="80" y="282" class="strong" fill="#0d1830">Gate Opener</text>
 <path transform="translate(37 318)" d="M0 3 3 0 6 3 3 6Z" fill="#1f5fd6"/><path transform="translate(47 318)" d="M0 3 3 0 6 3 3 6Z" fill="#1f5fd6"/><path transform="translate(57 318)" d="M0 3 3 0 6 3 3 6Z" fill="#1f5fd6"/>
-<text x="80" y="301" class="caption" fill="#0d1830">59 · MAX</text>
+<text x="80" y="301" class="caption" fill="#0d1830">58 · MAX</text>
 <text x="80" y="317" class="code" fill="#4a5a7c">REPOS THIS YEAR</text>
 </g>
 <g>
@@ -292,5 +292,5 @@
 <text x="80" y="605" class="caption" fill="#4a5a7c">counts with the Action</text>
 <text x="80" y="621" class="code" fill="#4a5a7c">QUEST KINDS</text>
 </g>
-<text x="820" y="646" class="code" fill="#4a5a7c" text-anchor="end">@billtruong003 · SYNCED 2026-11-11</text>
+<text x="820" y="646" class="code" fill="#4a5a7c" text-anchor="end">@billtruong003 · SYNCED 2026-11-12</text>
 </svg>

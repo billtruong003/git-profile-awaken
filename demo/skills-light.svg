@@ -39,7 +39,7 @@
 <path d="M18.4 4.8H415.3V261.6L401.6 275.3H4.8V18.4Z" fill="none" stroke="#6f8fc4" stroke-width="1.5"/>
 <path class="breathe" d="M405 1H419V15M1 265V279H15" fill="none" stroke="#1f5fd6" stroke-width="2"/>
 <text x="20" y="62" class="label" fill="#4a5a7c">MASTERY BY CODE SIZE</text>
-<text x="400" y="62" class="caption" fill="#4a5a7c" text-anchor="end">126 repos</text>
+<text x="400" y="62" class="caption" fill="#4a5a7c" text-anchor="end">125 repos</text>
 <use href="#i-shield" x="20" y="74" width="15" height="15" fill="#1f5fd6"/>
 <text x="44" y="86" class="body" fill="#0d1830">C#</text>
 <rect x="148" y="80" width="192" height="4" fill="#eef3fb"/>
@@ -66,5 +66,5 @@
 <rect class="grow" x="148" y="192" width="9.6" height="4" fill="#1f5fd6"/>
 <text x="400" y="198" class="caption" fill="#0d1830" text-anchor="end">5.0%</text>
 <text x="20" y="234" class="body" fill="#4a5a7c">Class Holy Knight, awakened from C#</text>
-<text x="400" y="262" class="code" fill="#4a5a7c" text-anchor="end">@billtruong003 · SYNCED 2026-11-11</text>
+<text x="400" y="262" class="code" fill="#4a5a7c" text-anchor="end">@billtruong003 · SYNCED 2026-11-12</text>
 </svg>
