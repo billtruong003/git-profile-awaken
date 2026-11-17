@@ -79,7 +79,7 @@
 <path d="M458.4 129H499V153.6L493.6 159H453V134.4Z" fill="none" stroke="#d61f45" stroke-width="2"/><path d="M459.5 132.5H495.5V152.5L492.5 155.5H456.5V135.5Z" fill="none" stroke="#d61f45" stroke-width="1"/>
 <text x="476" y="151.2" class="rank tight" fill="#d61f45" text-anchor="middle">SSS</text>
 <clipPath id="fs147"><path d="M458 128H500V154L494 160H452V134Z"/></clipPath><g clip-path="url(#fs147)"><rect class="shine" x="430.4" y="128" width="21.6" height="32" fill="url(#shine)" style="animation-duration:1.9s"/></g>
-</g><text x="510" y="134" class="label" fill="#5c5444">VIT</text><text x="510" y="152" class="value" fill="#1c1912">27</text><text x="510" y="167" class="code" fill="#5c5444">TOP 0.2%</text>
+</g><text x="510" y="134" class="label" fill="#5c5444">VIT</text><text x="510" y="152" class="value" fill="#1c1912">26</text><text x="510" y="167" class="code" fill="#5c5444">TOP 0.2%</text>
 <g>
 
 <path d="M582 128H624V154L618 160H576V134Z" fill="#f1ece2"/>
@@ -94,5 +94,5 @@
 <text x="724" y="151.2" class="rank" fill="#a67800" text-anchor="middle">S</text>
 
 </g><text x="758" y="134" class="label" fill="#5c5444">CHA</text><text x="758" y="152" class="value" fill="#1c1912">18</text><text x="758" y="167" class="code" fill="#5c5444">TOP 5.3%</text>
-<text x="820" y="226" class="code" fill="#5c5444" text-anchor="end">@billtruong003 · SYNCED 2026-11-15</text>
+<text x="820" y="226" class="code" fill="#5c5444" text-anchor="end">@billtruong003 · SYNCED 2026-11-17</text>
 </svg>
