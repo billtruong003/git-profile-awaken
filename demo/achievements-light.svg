@@ -109,7 +109,7 @@
 <use href="#i-sun" x="445" y="204" width="20" height="20" fill="#0d1830"/>
 <text x="485" y="206" class="strong" fill="#0d1830">Early Bird</text>
 <path transform="translate(442 242)" d="M0 3 3 0 6 3 3 6Z" fill="#1f5fd6"/><path transform="translate(452 242)" d="M0 3 3 0 6 3 3 6Z" fill="#d5deee"/><path transform="translate(462 242)" d="M0 3 3 0 6 3 3 6Z" fill="#d5deee"/>
-<text x="485" y="225" class="caption" fill="#0d1830">21 / 25</text>
+<text x="485" y="225" class="caption" fill="#0d1830">20 / 25</text>
 <text x="485" y="241" class="code" fill="#4a5a7c">% COMMITS 05–09H</text>
 </g>
 <g>
@@ -129,7 +129,7 @@
 <use href="#i-gate" x="40" y="280" width="20" height="20" fill="#1f5fd6"/>
 <text x="80" y="282" class="strong" fill="#0d1830">Gate Opener</text>
 <path transform="translate(37 318)" d="M0 3 3 0 6 3 3 6Z" fill="#1f5fd6"/><path transform="translate(47 318)" d="M0 3 3 0 6 3 3 6Z" fill="#1f5fd6"/><path transform="translate(57 318)" d="M0 3 3 0 6 3 3 6Z" fill="#d5deee"/>
-<text x="80" y="301" class="caption" fill="#0d1830">30 / 50</text>
+<text x="80" y="301" class="caption" fill="#0d1830">31 / 50</text>
 <text x="80" y="317" class="code" fill="#4a5a7c">REPOS THIS YEAR</text>
 </g>
 <g>
@@ -169,7 +169,7 @@
 <use href="#i-scroll" x="40" y="356" width="20" height="20" fill="#1f5fd6"/>
 <text x="80" y="358" class="strong" fill="#0d1830">Polyglot</text>
 <path transform="translate(37 394)" d="M0 3 3 0 6 3 3 6Z" fill="#1f5fd6"/><path transform="translate(47 394)" d="M0 3 3 0 6 3 3 6Z" fill="#1f5fd6"/><path transform="translate(57 394)" d="M0 3 3 0 6 3 3 6Z" fill="#d5deee"/>
-<text x="80" y="377" class="caption" fill="#0d1830">7 / 8</text>
+<text x="80" y="377" class="caption" fill="#0d1830">6 / 8</text>
 <text x="80" y="393" class="code" fill="#4a5a7c">LANGUAGES ≥ 1%</text>
 </g>
 <g>
@@ -179,7 +179,7 @@
 <use href="#i-star" x="242.5" y="356" width="20" height="20" fill="#1f5fd6"/>
 <text x="282.5" y="358" class="strong" fill="#0d1830">Star Collector</text>
 <path transform="translate(239.5 394)" d="M0 3 3 0 6 3 3 6Z" fill="#1f5fd6"/><path transform="translate(249.5 394)" d="M0 3 3 0 6 3 3 6Z" fill="#1f5fd6"/><path transform="translate(259.5 394)" d="M0 3 3 0 6 3 3 6Z" fill="#d5deee"/>
-<text x="282.5" y="377" class="caption" fill="#0d1830">136 / 1,000</text>
+<text x="282.5" y="377" class="caption" fill="#0d1830">137 / 1,000</text>
 <text x="282.5" y="393" class="code" fill="#4a5a7c">STARS</text>
 </g>
 <g>
@@ -292,5 +292,5 @@
 <text x="80" y="605" class="caption" fill="#4a5a7c">counts with the Action</text>
 <text x="80" y="621" class="code" fill="#4a5a7c">QUEST KINDS</text>
 </g>
-<text x="820" y="646" class="code" fill="#4a5a7c" text-anchor="end">@billtruong003 · SYNCED 2026-11-22</text>
+<text x="820" y="646" class="code" fill="#4a5a7c" text-anchor="end">@billtruong003 · SYNCED 2026-11-24</text>
 </svg>
